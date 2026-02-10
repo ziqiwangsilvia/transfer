@@ -2,6 +2,7 @@ import json
 import re
 import yaml
 from pathlib import Path
+from dataclasses import dataclass
 from datasets import load_dataset
 
 
@@ -9,6 +10,54 @@ def load_config(config_path: str = "config.yaml") -> dict:
     """Load configuration from YAML file."""
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+@dataclass
+class Args:
+    """Configuration arguments for dataset loading and formatting."""
+    repo: str = "liminghao1630/API-Bank"
+    split: str = "test"
+    sample_size: int = 100
+    streaming: bool = True
+    output_path: str = "formatted_dataset.json"
+    indent: int = 2
+    ensure_ascii: bool = False
+    verbose: bool = True
+    print_samples: bool = False
+
+
+def parse_args(config: dict = None) -> Args:
+    """Parse and extract arguments from configuration.
+    
+    Args:
+        config: Configuration dict from YAML. If None, loads from config.yaml
+        
+    Returns:
+        Args dataclass instance with parsed configuration values
+    """
+    if config is None:
+        config = load_config()
+    
+    dataset_cfg = config.get("dataset", {})
+    output_cfg = config.get("output", {})
+    log_cfg = config.get("logging", {})
+    
+    # Map config keys to their source sections
+    config_map = {
+        "repo": dataset_cfg,
+        "split": dataset_cfg,
+        "sample_size": dataset_cfg,
+        "streaming": dataset_cfg,
+        "output_path": output_cfg,
+        "indent": output_cfg,
+        "ensure_ascii": output_cfg,
+        "verbose": log_cfg,
+        "print_samples": log_cfg,
+    }
+    
+    kwargs = {key: cfg[key] for key, cfg in config_map.items() if key in cfg}
+    
+    return Args(**kwargs)
 
 
 def parse_api_request(text: str):
@@ -37,38 +86,21 @@ def load_and_format_hf_subset(config: dict = None):
     Args:
         config: Configuration dict from YAML. If None, loads from config.yaml
     """
-    if config is None:
-        config = load_config()
+    args = parse_args(config)
     
-    dataset_cfg = config.get("dataset", {})
-    output_cfg = config.get("output", {})
-    parse_cfg = config.get("parsing", {})
-    log_cfg = config.get("logging", {})
-    
-    repo = dataset_cfg.get("repo", "liminghao1630/API-Bank")
-    split = dataset_cfg.get("split", "test")
-    sample_size = dataset_cfg.get("sample_size", 100)
-    streaming = dataset_cfg.get("streaming", True)
-    
-    output_path = output_cfg.get("output_path", "formatted_dataset.json")
-    indent = output_cfg.get("indent", 2)
-    ensure_ascii = output_cfg.get("ensure_ascii", False)
-    
-    verbose = log_cfg.get("verbose", True)
-    print_samples = log_cfg.get("print_samples", False)
-    
-    ds = load_dataset(repo, streaming=streaming, split=split)
+    ds = load_dataset(args.repo, streaming=args.streaming, split=args.split)
     formatted = []
 
-    if verbose:
-        print(f"🚀 Streaming from {repo} and formatting {sample_size} examples...")
+    if args.verbose:
+        print(f"🚀 Streaming from {args.repo} and formatting {args.sample_size} examples...")
 
     for i, entry in enumerate(ds):
-        if i >= sample_size:
+        if i >= args.sample_size:
             break
 
         # Common fields to use as query
-        query = entry.get("query") or entry.get("instruction") or entry.get("input") or entry.get("prompt") or ""
+        query = entry.get("input")
+        instruction = entry.get("instruction")
 
         # Prefer explicit expected_output, fall back to answer/response
         expected = entry.get("expected_output") or entry.get("answer") or entry.get("output") or ""
@@ -85,16 +117,13 @@ def load_and_format_hf_subset(config: dict = None):
             resp_text = expected if expected else entry.get("answer", "")
             ground_truth = {"type": "nlp", "response": resp_text}
 
-        formatted.append({"query": query, "ground_truth": ground_truth})
-        
-        if print_samples and i < 3:
-            print(f"\nSample {i}:\n  Query: {query[:100]}\n  Type: {ground_truth.get('type')}")
+        formatted.append({"query": query, "instruction": instruction, "ground_truth": ground_truth})
 
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(formatted, f, indent=indent, ensure_ascii=ensure_ascii)
+    with open(args.output_path, "w", encoding="utf-8") as f:
+        json.dump(formatted, f, indent=args.indent, ensure_ascii=args.ensure_ascii)
 
-    if verbose:
-        print(f"✅ Wrote {len(formatted)} formatted entries to {output_path}")
+    if args.verbose:
+        print(f"✅ Wrote {len(formatted)} formatted entries to {args.output_path}")
 
 
 if __name__ == "__main__":
