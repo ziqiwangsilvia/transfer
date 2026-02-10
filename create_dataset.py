@@ -1,6 +1,14 @@
 import json
 import re
+import yaml
+from pathlib import Path
 from datasets import load_dataset
+
+
+def load_config(config_path: str = "config.yaml") -> dict:
+    """Load configuration from YAML file."""
+    with open(config_path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
 
 
 def parse_api_request(text: str):
@@ -23,11 +31,37 @@ def parse_api_request(text: str):
     return name, params
 
 
-def load_and_format_hf_subset(repo="liminghao1630/API-Bank", sample_size=100, output_path="formatted_dataset.json"):
-    ds = load_dataset(repo, streaming=True, split="test")
+def load_and_format_hf_subset(config: dict = None):
+    """Load HF dataset and format to match data_schema.json structure.
+    
+    Args:
+        config: Configuration dict from YAML. If None, loads from config.yaml
+    """
+    if config is None:
+        config = load_config()
+    
+    dataset_cfg = config.get("dataset", {})
+    output_cfg = config.get("output", {})
+    parse_cfg = config.get("parsing", {})
+    log_cfg = config.get("logging", {})
+    
+    repo = dataset_cfg.get("repo", "liminghao1630/API-Bank")
+    split = dataset_cfg.get("split", "test")
+    sample_size = dataset_cfg.get("sample_size", 100)
+    streaming = dataset_cfg.get("streaming", True)
+    
+    output_path = output_cfg.get("output_path", "formatted_dataset.json")
+    indent = output_cfg.get("indent", 2)
+    ensure_ascii = output_cfg.get("ensure_ascii", False)
+    
+    verbose = log_cfg.get("verbose", True)
+    print_samples = log_cfg.get("print_samples", False)
+    
+    ds = load_dataset(repo, streaming=streaming, split=split)
     formatted = []
 
-    print(f"🚀 Streaming from {repo} and formatting {sample_size} examples...")
+    if verbose:
+        print(f"🚀 Streaming from {repo} and formatting {sample_size} examples...")
 
     for i, entry in enumerate(ds):
         if i >= sample_size:
@@ -52,12 +86,16 @@ def load_and_format_hf_subset(repo="liminghao1630/API-Bank", sample_size=100, ou
             ground_truth = {"type": "nlp", "response": resp_text}
 
         formatted.append({"query": query, "ground_truth": ground_truth})
+        
+        if print_samples and i < 3:
+            print(f"\nSample {i}:\n  Query: {query[:100]}\n  Type: {ground_truth.get('type')}")
 
     with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(formatted, f, indent=2, ensure_ascii=False)
+        json.dump(formatted, f, indent=indent, ensure_ascii=ensure_ascii)
 
-    print(f"✅ Wrote {len(formatted)} formatted entries to {output_path}")
+    if verbose:
+        print(f"✅ Wrote {len(formatted)} formatted entries to {output_path}")
 
 
 if __name__ == "__main__":
-    load_and_format_hf_subset(sample_size=10)
+    load_and_format_hf_subset()
