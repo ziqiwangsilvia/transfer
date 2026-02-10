@@ -27,14 +27,15 @@ def load_and_format_hf_subset(repo="liminghao1630/API-Bank", sample_size=100, ou
     ds = load_dataset(repo, streaming=True, split="test")
     formatted = []
 
-    print(f"🚀 Streaming from {repo} and formatting {sample_size} examples...")
+    print(f"Streaming from {repo} and formatting {sample_size} examples...")
 
     for i, entry in enumerate(ds):
         if i >= sample_size:
             break
 
         # Common fields to use as query
-        query = entry.get("query") or entry.get("instruction") or entry.get("input") or entry.get("prompt") or ""
+        query = entry.get("input")
+        instruction = entry.get("instruction")
 
         # Prefer explicit expected_output, fall back to answer/response
         expected = entry.get("expected_output") or entry.get("answer") or entry.get("output") or ""
@@ -51,7 +52,7 @@ def load_and_format_hf_subset(repo="liminghao1630/API-Bank", sample_size=100, ou
             resp_text = expected if expected else entry.get("answer", "")
             ground_truth = {"type": "nlp", "response": resp_text}
 
-        formatted.append({"query": query, "ground_truth": ground_truth})
+        formatted.append({"query": query, "instruction": instruction, "ground_truth": ground_truth})
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(formatted, f, indent=2, ensure_ascii=False)
@@ -60,4 +61,4 @@ def load_and_format_hf_subset(repo="liminghao1630/API-Bank", sample_size=100, ou
 
 
 if __name__ == "__main__":
-    load_and_format_hf_subset(sample_size=10)
+    load_and_format_hf_subset(sample_size=1, output_path="dataset/tool_calling/API-Bank_subset.json")
