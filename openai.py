@@ -1,32 +1,26 @@
 async def _run_openai_async(
-    self,
-    chats: List[List[str]], # List of conversations (each a list of turns)
-    batch_size: int,
-    stop_sequences: Optional[List[str]],
-    tools: Optional[List[Dict[str, Any]]],
-    structured_labels: Optional[List[str]],
-    system_message: Optional[str],
-) -> List[List[str]]:
-    """Run OpenAI inference asynchronously with multi-turn context support."""
-    assert self.model is not None
-    assert isinstance(self.model, AsyncOpenAI)
-    client: AsyncOpenAI = self.model
+        self,
+        prompts: List[str],
+        batch_size: int,
+        stop_sequences: Optional[List[str]],
+        tools: Optional[List[Dict[str, Any]]],
+        structured_labels: Optional[List[str]],
+        system_message: Optional[str],
+    ) -> List[str]:
+        """Run OpenAI inference asynchronously."""
+        assert self.model is not None
+        assert isinstance(self.model, AsyncOpenAI)
+        client: AsyncOpenAI = self.model
 
-    semaphore = asyncio.Semaphore(batch_size)
+        semaphore = asyncio.Semaphore(batch_size)
 
-    async def process_chat(turns: List[str]) -> List[str]:
-        async with semaphore:
-            # FIX: Each chat gets its own private message history
-            messages = []
-            if system_message:
-                messages.append({"role": "system", "content": system_message})
-            
-            chat_responses = []
-
-            # Process turns sequentially within this specific chat
-            for prompt in turns:
+        async def process_single(prompt: str) -> str:
+            async with semaphore:
+                messages = []
+                if system_message:
+                    messages.append({"role": "system", "content": system_message})
                 messages.append({"role": "user", "content": prompt})
-                
+
                 kwargs: Dict[str, Any] = {
                     "model": self.config.name,
                     "messages": messages,
@@ -66,51 +60,39 @@ async def _run_openai_async(
                     message = response.choices[0].message
 
                     if message.tool_calls:
-                        # STEP 1: Append the EXACT message object from the response (contains tool_calls)
-                        messages.append(message) 
-
-                        # STEP 2: You MUST append a "tool" role message for EVERY tool_call returned
+                        return json.dumps(
+                            {
+                                "tool_calls": [
+                                    {
+                                        "type": "function",
+                                        "function": {
+                                            "name": tc.function.name,
+                                            "arguments": tc.function.arguments,
+                                        },
+                                    }
+                                    for tc in message.tool_calls
+                                ]
+                            }
+                        )
                         for tc in message.tool_calls:
-                            messages.append({
-                                "role": "tool",
-                                "tool_call_id": tc.id, # CRITICAL: vLLM needs this ID to match
-                                "name": tc.function.name,
-                                "content": "Tool result goes here" # Even if dummy, this must exist
-                            })
+                            messages.append({"role": "tool", "content": tc.function})
 
-                        # Format the string to return for your evaluation results
-                        tool_json = json.dumps({
-                            "tool_calls": [
-                                {"name": tc.function.name, "arguments": tc.function.arguments}
-                                for tc in message.tool_calls
-                            ]
-                        })
-                        chat_responses.append(tool_json)
-                        continue # Move to the next user turn
+                    content = message.content or ""
+                    messages.append({"role": "assistant", "content": content})
 
-                        # Standard Content Handling
-                        content = message.content or ""
-                        messages.append({"role": "assistant", "content": content})
-                        
-                        # Parse structured output if needed
-                        final_output = content
-                        if structured_labels and content.startswith("{"):
-                            try:
-                                parsed = json.loads(content)
-                                final_output = parsed.get("classification", content)
-                            except Exception:
-                                pass
+                    # Parse structured output if needed
+                    if structured_labels and content.startswith("{"):
+                        try:
+                            parsed = json.loads(content)
+                            return parsed.get("classification", content)
+                        except Exception:
+                            pass
 
-                        chat_responses.append(final_output)
+                    return content
 
                 except Exception as e:
                     log.error(f"OpenAI API error: {e}")
-                    # Keep history consistent even on error
-                    messages.append({"role": "assistant", "content": "Error processing request"})
-                    chat_responses.append("")
-            
-            return chat_responses
+                    return ""
 
-    # Run all chats in parallel
-    tasks = [process_chat(chat_turns) for chat_turns in chats]
-    return await asyncio.gather(*tasks)
+        tasks = [process_single(prompt) for prompt in prompts]
+        return await asyncio.gather(*tasks)
