@@ -64,50 +64,44 @@ async def _run_openai_async(
                 try:
                     response = await client.chat.completions.create(**kwargs)
                     message = response.choices[0].message
-                    
-                    # Tool Handling Logic
+
                     if message.tool_calls:
-                        # Append the Assistant's Tool Call to history
-                        messages.append(message)
-                        
-                        tool_output = json.dumps({
+                        # STEP 1: Append the EXACT message object from the response (contains tool_calls)
+                        messages.append(message) 
+
+                        # STEP 2: You MUST append a "tool" role message for EVERY tool_call returned
+                        for tc in message.tool_calls:
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tc.id, # CRITICAL: vLLM needs this ID to match
+                                "name": tc.function.name,
+                                "content": "Tool result goes here" # Even if dummy, this must exist
+                            })
+
+                        # Format the string to return for your evaluation results
+                        tool_json = json.dumps({
                             "tool_calls": [
-                                {
-                                    "type": "function",
-                                    "function": {
-                                        "name": tc.function.name,
-                                        "arguments": tc.function.arguments,
-                                    },
-                                }
+                                {"name": tc.function.name, "arguments": tc.function.arguments}
                                 for tc in message.tool_calls
                             ]
                         })
-                        
-                        # Prepare for next turn by adding tool results (dummy content if not executing)
-                        for tc in message.tool_calls:
-                            messages.append({
-                                "role": "tool", 
-                                "content": "Tool executed successfully", 
-                                "tool_call_id": tc.id
-                            })
-                        
-                        chat_responses.append(tool_output)
-                        continue # Move to next user turn
+                        chat_responses.append(tool_json)
+                        continue # Move to the next user turn
 
-                    # Standard Content Handling
-                    content = message.content or ""
-                    messages.append({"role": "assistant", "content": content})
-                    
-                    # Parse structured output if needed
-                    final_output = content
-                    if structured_labels and content.startswith("{"):
-                        try:
-                            parsed = json.loads(content)
-                            final_output = parsed.get("classification", content)
-                        except Exception:
-                            pass
+                        # Standard Content Handling
+                        content = message.content or ""
+                        messages.append({"role": "assistant", "content": content})
+                        
+                        # Parse structured output if needed
+                        final_output = content
+                        if structured_labels and content.startswith("{"):
+                            try:
+                                parsed = json.loads(content)
+                                final_output = parsed.get("classification", content)
+                            except Exception:
+                                pass
 
-                    chat_responses.append(final_output)
+                        chat_responses.append(final_output)
 
                 except Exception as e:
                     log.error(f"OpenAI API error: {e}")
