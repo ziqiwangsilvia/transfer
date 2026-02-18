@@ -1,0 +1,763 @@
+[[
+    {
+    "query": "Why did my savings interest change this month?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Interest rates can change when the bank updates its variable savings rate or when promotional periods end."
+    }
+  },
+  {
+    "query": "How do I know which account is best for everyday spending?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Everyday spending accounts usually have low fees and instant access, making them the easiest option for daily purchases."
+    }
+  }
+],
+
+[{
+    "query": "What does an overdraft actually do?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "An overdraft lets you spend more money than you have in your account up to a set limit, usually with interest or fees."
+    }
+  },
+  {
+    "query": "Why was my card payment declined?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Card payments can decline due to insufficient funds, security checks, merchant issues, or temporary network problems."
+    }
+  },
+  {
+    "query": "How can I quickly check all my recent transactions?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "You can view recent transactions instantly through the banking app or online banking dashboard."
+    }
+  },
+  {
+    "query": "What’s the benefit of setting up a budget in my banking app?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Budgets help you track spending by category so you can avoid overspending and reach savings goals faster."
+    }
+  },
+  {
+    "query": "How do I freeze my card if I lost it?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Most banking apps let you freeze your card instantly to block transactions until you find it or request a replacement."
+    }
+  },
+  {
+    "query": "Why is my balance lower than I expected?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Pending card payments, scheduled bills, or recent transfers may not have fully cleared but still reduce your available balance."
+    }
+  },
+  {
+    "query": "What’s the point of setting up direct debits?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Direct debits automate regular payments so bills are paid on time without you needing to remember each one."
+    }
+  },
+  {
+    "query": "How do savings pots work?",
+    "ground_truth": {
+      "type": "nlp",
+      "response": "Savings pots let you set aside money for specific goals while keeping everything within one main account."
+    }
+  },
+  {
+    "query": "Hey, could you summarise my spending for the past 30 days?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_30_days",
+              "time_granularity": "total"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Can you show me a breakdown by payee for the eating out category?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_30_days",
+              "time_granularity": "total",
+              "group_by": "payee",
+              "filter": {
+                "categories": ["Eating Out"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Can you show me how my eating out spending has trended over the past few weeks?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_30_days",
+              "time_granularity": "monthly",
+              "group_by": "category",
+              "filter": {
+                "categories": ["Eating Out"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me my total spending this month",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "this_month",
+              "time_granularity": "total"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "What's my account balance looking like?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "balance",
+            "time_range": "last_90_days"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "How much did I spend on groceries last month?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_month",
+              "time_granularity": "total",
+              "filter": {
+                "categories": ["Groceries"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me my income vs spending for this year",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "net_cash_flow",
+            "time_range": "this_year"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "What are my top spending categories in the last 90 days?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "total",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Can I see how my transport spending has changed month by month?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "monthly",
+              "group_by": "category",
+              "filter": {
+                "categories": ["Transport"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me all my income sources this month",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "income",
+              "time_range": "this_month",
+              "time_granularity": "total",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Hi there!",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "Thanks for your help!",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "What spending categories do you track?",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "Can you explain what a net cash flow chart shows?",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "How has my spending on subscriptions trended over the last 3 months?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "monthly",
+              "group_by": "category",
+              "filter": {
+                "categories": ["Subscriptions"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me my biggest expenses at individual stores last month",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_month",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Compare my spending this month to last month",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "monthly",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "What did I spend on entertainment in the past 30 days?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_30_days",
+              "time_granularity": "total",
+              "filter": {
+                "categories": ["Entertainment"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me my income trend for the year",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "income",
+            "time_range": "this_year"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Where did most of my shopping money go last month?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_month",
+              "time_granularity": "total",
+              "group_by": "payee",
+              "filter": {
+                "categories": ["Shopping"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show how my balance has shifted throughout this month.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "balance",
+            "time_range": "this_month"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Break down where my spending went this year across the different categories I use.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "this_year",
+              "time_granularity": "total",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Compare the amounts I earned from each payee over last month.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "income",
+              "time_range": "last_month",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Could you summarise my spending distribution over the past 30 days?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_30_days",
+              "time_granularity": "total",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me how my net cash flow has been trending this year.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "net_cash_flow",
+            "time_range": "this_year"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "I'd like to see how my spending has varied month by month over the last 90 days across categories.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "monthly",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show me how much income came from each source in the last 30 days.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "income",
+              "time_range": "last_30_days",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Break down my spending by payee for this month so I can see who I paid most.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "this_month",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "How has my balance been moving over the last month?",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "balance",
+            "time_range": "last_month"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show how my spending across categories looked during the past 90 days.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_90_days",
+              "time_granularity": "total",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "If I want to understand which categories grew or shrank the most in spending over recent months, how would I look at that?",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "What exactly does it mean when a metric shows 'net cash flow' over a period?",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "Help me understand why comparing categories visually is useful when reviewing finances.",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "How do tools typically interpret time ranges like 30 days or a month when analysing financial trends?",
+    "ground_truth": {
+      "type": "nlp"
+    }
+  },
+  {
+    "query": "Show how my income has evolved over the last 30 days.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "income",
+            "time_range": "last_30_days"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Focus only on groceries and show how much I spent on that category this month.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "this_month",
+              "time_granularity": "total",
+              "group_by": "category",
+              "filter": {
+                "categories": ["groceries"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "I want to see how my income has differed each month this year depending on who paid me.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "income",
+              "time_range": "this_year",
+              "time_granularity": "monthly",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show my spending for last month grouped by who I paid.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "last_month",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Help me review how my net cash flow looked over the past 90 days.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_line_chart",
+          "parameters": {
+            "metric": "net_cash_flow",
+            "time_range": "last_90_days"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "I want to look at how my category spending has changed month over month this year.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_stacked_bar_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "spending",
+              "time_range": "this_year",
+              "time_granularity": "monthly",
+              "group_by": "category"
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "query": "Show where my income came from during this month, separated by payee.",
+    "ground_truth": {
+      "type": "tool",
+      "tools": [
+        {
+          "tool": "show_pie_chart",
+          "parameters": {
+            "data_source": {
+              "source": "transactions",
+              "data_type": "income",
+              "time_range": "this_month",
+              "time_granularity": "total",
+              "group_by": "payee"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
+]

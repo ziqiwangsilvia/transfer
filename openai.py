@@ -122,5 +122,7 @@
                         results.append("")
                 return results
 
-        tasks = [process_single_chat(chat) for chat in prompts]      
-        return await asyncio.gather(*tasks)
+        tasks = [process_single_chat(chat) for chat in prompts]   
+        tasks_results = await asyncio.gather(*tasks)
+        flattened_results = [item for sublist in tasks_results for item in sublist]
+        return await flattened_results
