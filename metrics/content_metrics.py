@@ -8,6 +8,8 @@ import Levenshtein
 from openai import AsyncOpenAI
 from tqdm.asyncio import tqdm_asyncio
 
+from evaluator.conversational_content.content_metrics_registry import run_metric_families
+
 log = logging.getLogger(__name__)
 
 
@@ -29,6 +31,7 @@ def get_levenshtein_distance_batch(
     for pred, ref in zip(predictions, references):
         distances.append(Levenshtein.distance(pred, ref))
         ratios.append(Levenshtein.ratio(pred, ref))
+
     return {"levenshtein_distance": distances, "levenshtein_ratio": ratios}
 
 
@@ -56,6 +59,7 @@ def get_rouge_score_batch(
         if isinstance(scores["rougeL"], float)
         else scores["rougeL"]
     )
+
     return {"rouge1": rouge1, "rougeL": rougeL}
 
 
@@ -88,8 +92,8 @@ def _parse_judge_output(output: str, output_type: str) -> float:
     - score_1_5: 1.0 to 5.0
     """
     output = output.strip()
+
     if output_type == "binary":
-        # Expected: 0 or 1
         try:
             return 1.0 if float(output) > 0.5 else 0.0
         except ValueError:
@@ -97,7 +101,8 @@ def _parse_judge_output(output: str, output_type: str) -> float:
                 f"Failed to parse binary judge output: {output!r}, returning 0.0"
             )
             return 0.0
-    elif output_type == "score_1_5":
+
+    if output_type == "score_1_5":
         try:
             return max(1.0, min(5.0, float(output)))
         except ValueError:
@@ -105,6 +110,7 @@ def _parse_judge_output(output: str, output_type: str) -> float:
                 f"Failed to parse score judge output: {output!r}, returning 3.0"
             )
             return 3.0
+
     return 0.0
 
 
@@ -137,14 +143,13 @@ async def _run_judge_openai_batch(
                     log.error(f"OpenAI API error: {e}")
                     return ""
 
-        return list(
-            await tqdm_asyncio.gather(
-                *[call_single(s, u) for s, u in prompts],
-                desc="LLM Judge (Content Metrics)",
-                unit="sample",
-                colour="magenta",
-            )
+        outputs = await tqdm_asyncio.gather(
+            *[call_single(s, u) for s, u in prompts],
+            desc="LLM Judge (Content Metrics)",
+            unit="sample",
+            colour="magenta",
         )
+        return list(outputs)
     finally:
         await client.close()
 
@@ -213,10 +218,6 @@ async def compute_all_metrics_batch(
     judge_config: Optional[Any] = None,
 ) -> List[Dict[str, float]]:
     """Compute configured content evaluation metrics in batch using registry pattern."""
-    from evaluator.conversational_content.content_metrics_registry import (
-        run_metric_families,
-    )
-
     all_scores: List[Dict[str, float]] = [{} for _ in range(len(ground_truths))]
 
     # Collect NLP-only samples
