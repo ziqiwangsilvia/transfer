@@ -1,0 +1,272 @@
+﻿{
+    "incomplete":  [
+                       {
+                           "uid":  "88dfd763-ric",
+                           "metadata":  {
+                                            "id":  "CUST-4354",
+                                            "gender":  "Male",
+                                            "age":  26,
+                                            "affluence":  "Low",
+                                            "religion":  "Muslim"
+                                        },
+                           "messages":  [
+                                            {
+                                                "role":  "user",
+                                                "content":  "Since itâ€™s the end of the month, show a top five breakdown of what I spent in the last 30 days"
+                                            },
+                                            {
+                                                "role":  "assistant",
+                                                "tool_call":  {
+                                                                  "name":  "show_pie_chart",
+                                                                  "arguments":  {
+                                                                                    "data_source":  {
+                                                                                                        "data_type":  "spending",
+                                                                                                        "time_range":  "last_30_days",
+                                                                                                        "limit":  5
+                                                                                                    },
+                                                                                    "title":  "Spending - Last 30 Days"
+                                                                                }
+                                                              }
+                                            },
+                                            {
+                                                "role":  "tool",
+                                                "content":  "Displayed pie chart. Total: Â£1490. Top categories: Rent/Mortgage: Â£475, Other: Â£356, Hobbies: Â£241, Spa \u0026 Wellness: Â£215, Restaurants: Â£125, Home improvement: Â£78."
+                                            }
+                                        ]
+                       },
+                       {
+                           "uid":  "f7171f1c-ric",
+                           "metadata":  {
+                                            "id":  "CUST-6416",
+                                            "gender":  "Female",
+                                            "age":  36,
+                                            "affluence":  "High",
+                                            "religion":  "Christian"
+                                        },
+                           "messages":  [
+                                            {
+                                                "role":  "user",
+                                                "content":  "Show me how my money was categorized over last month."
+                                            },
+                                            {
+                                                "role":  "assistant",
+                                                "tool_call":  {
+                                                                  "name":  "show_pie_chart",
+                                                                  "arguments":  {
+                                                                                    "data_source":  {
+                                                                                                        "time_range":  "last_month",
+                                                                                                        "group_by":  "category"
+                                                                                                    },
+                                                                                    "title":  "Category - Last Month"
+                                                                                }
+                                                              }
+                                            },
+                                            {
+                                                "role":  "tool",
+                                                "content":  "Displayed pie chart. Total: Â£6685. Top categories: Other: Â£1392, Spa \u0026 Wellness: Â£1146, Rent/Mortgage: Â£999, Electronics: Â£539, Medical: Â£529, Restaurants: Â£453, Hobbies: Â£426, Clothing \u0026 Shoes: Â£339, Pharmacy: Â£299, Loans: Â£289."
+                                            }
+                                        ]
+                       },
+                       {
+                           "uid":  "7e6aba2c-ric",
+                           "metadata":  {
+                                            "id":  "CUST-4257",
+                                            "gender":  "Male",
+                                            "age":  19,
+                                            "affluence":  "Low",
+                                            "religion":  "Muslim"
+                                        },
+                           "messages":  [
+                                            {
+                                                "role":  "user",
+                                                "content":  "What was the mean account balance?"
+                                            },
+                                            {
+                                                "role":  "assistant",
+                                                "tool_call":  {
+                                                                  "name":  "stats_retrieval",
+                                                                  "arguments":  {
+                                                                                    "data_type":  "balance"
+                                                                                }
+                                                              }
+                                            },
+                                            {
+                                                "role":  "tool",
+                                                "content":  "Retrieved balance statistics. overall: total Â£-57,975.79, mean Â£-2,635.26, median Â£-2,791.39, min Â£-3,289.23, max Â£-1,371.20, count 22, std Â£607.64, earliest entry Â£-2,560.63, most recent entry Â£-1,465.13."
+                                            }
+                                        ]
+                       }
+                   ],
+    "nlp":  [
+                {
+                    "uid":  "282da1b3-ric",
+                    "metadata":  {
+                                     "id":  "CUST-7114",
+                                     "gender":  "Male",
+                                     "age":  65,
+                                     "affluence":  "Standard",
+                                     "religion":  "Muslim"
+                                 },
+                    "messages":  [
+                                     {
+                                         "role":  "user",
+                                         "content":  "I want to know if my net cash flow trend suggests instability, and what I should adjust."
+                                     },
+                                     {
+                                         "role":  "assistant",
+                                         "content":  "A worsening net cash flow trend can signal increasing fixed costs, irregular income, or lifestyle creep. Try setting a minimum monthly surplus target, trimming recurring expenses, and keeping a cash buffer so shortfalls donâ€™t force debt."
+                                     }
+                                 ]
+                },
+                {
+                    "uid":  "12c80b3c-ric",
+                    "metadata":  {
+                                     "id":  "CUST-4354",
+                                     "gender":  "Male",
+                                     "age":  26,
+                                     "affluence":  "Low",
+                                     "religion":  "Muslim"
+                                 },
+                    "messages":  [
+                                     {
+                                         "role":  "user",
+                                         "content":  "Since Iâ€™m closing out a client event, how long should I wait before chasing a refund?"
+                                     },
+                                     {
+                                         "role":  "assistant",
+                                         "content":  "If itâ€™s past the merchantâ€™s stated timeline, follow upâ€”most refunds take 3â€“10 business days, longer for debit or travel. After about two weeks, contact the merchant again and consider a dispute if you have documentation."
+                                     }
+                                 ]
+                },
+                {
+                    "uid":  "e494a792-ric",
+                    "metadata":  {
+                                     "id":  "CUST-5606",
+                                     "gender":  "Male",
+                                     "age":  38,
+                                     "affluence":  "Standard",
+                                     "religion":  "Muslim"
+                                 },
+                    "messages":  [
+                                     {
+                                         "role":  "user",
+                                         "content":  "Whatâ€™s the smartest way to cut my utility bills so I can visit Tripoliâ€™s landmarks more?"
+                                     },
+                                     {
+                                         "role":  "assistant",
+                                         "content":  "Start with the biggest levers: lower heating/cooling costs (thermostat, sealing drafts) and reduce standby power (unplug chargers, use power strips). If you share your living setup (roommates, AC type), I can suggest the most impactful changes."
+                                     }
+                                 ]
+                }
+            ],
+    "complete":  [
+                     {
+                         "uid":  "bcaadd24-ric",
+                         "metadata":  {
+                                          "id":  "CUST-4354",
+                                          "gender":  "Male",
+                                          "age":  26,
+                                          "affluence":  "Low",
+                                          "religion":  "Muslim"
+                                      },
+                         "messages":  [
+                                          {
+                                              "role":  "user",
+                                              "content":  "Where did I spend the most in the last month with Tesco, my mortgage, and Eventbrite?"
+                                          },
+                                          {
+                                              "role":  "assistant",
+                                              "tool_call":  {
+                                                                "name":  "show_pie_chart",
+                                                                "arguments":  {
+                                                                                  "data_source":  {
+                                                                                                      "data_type":  "spending",
+                                                                                                      "time_range":  "last_30_days",
+                                                                                                      "group_by":  "payee",
+                                                                                                      "filter":  {
+                                                                                                                     "payees":  [
+                                                                                                                                    "Tesco",
+                                                                                                                                    "Mortgage_Payment_Direct",
+                                                                                                                                    "Eventbrite"
+                                                                                                                                ]
+                                                                                                                 }
+                                                                                                  },
+                                                                                  "title":  "Tesco, Mortgage_Payment_Direct, Eventbrite Spending by Payee - Last 30 Days"
+                                                                              }
+                                                            }
+                                          },
+                                          {
+                                              "role":  "tool",
+                                              "content":  "Displayed pie chart. Total: Â£33. Top categories: Eventbrite 326: Â£33."
+                                          }
+                                      ]
+                     },
+                     {
+                         "uid":  "8b4b040b-ric",
+                         "metadata":  {
+                                          "id":  "CUST-4257",
+                                          "gender":  "Male",
+                                          "age":  19,
+                                          "affluence":  "Low",
+                                          "religion":  "Muslim"
+                                      },
+                         "messages":  [
+                                          {
+                                              "role":  "user",
+                                              "content":  "Show me my expenses by vendor for this year."
+                                          },
+                                          {
+                                              "role":  "assistant",
+                                              "tool_call":  {
+                                                                "name":  "show_pie_chart",
+                                                                "arguments":  {
+                                                                                  "data_source":  {
+                                                                                                      "data_type":  "spending",
+                                                                                                      "time_range":  "this_year",
+                                                                                                      "group_by":  "payee"
+                                                                                                  },
+                                                                                  "title":  "Spending by Payee - This Year"
+                                                                              }
+                                                            }
+                                          },
+                                          {
+                                              "role":  "tool",
+                                              "content":  "Displayed pie chart. Total: Â£23053. Top categories: Other: Â£18442, Amazon Digital 680: Â£517, Currys 126: Â£491, RE_MGMT_SVC 514: Â£457, RE_MGMT_SVC 608: Â£455, Mortgage_Payment_Direct 629: Â£454, Mortgage_Payment_Direct 291: Â£452, Mortgage_Payment_Direct 924: Â£450, RE_MGMT_SVC 352: Â£446, Mortgage_Payment_Direct 469: Â£445."
+                                          }
+                                      ]
+                     },
+                     {
+                         "uid":  "80be5827-ric",
+                         "metadata":  {
+                                          "id":  "CUST-5675",
+                                          "gender":  "Female",
+                                          "age":  18,
+                                          "affluence":  "Standard",
+                                          "religion":  "Christian"
+                                      },
+                         "messages":  [
+                                          {
+                                              "role":  "user",
+                                              "content":  "What were my biggest expenses this month as I plan for upcoming projects?"
+                                          },
+                                          {
+                                              "role":  "assistant",
+                                              "tool_call":  {
+                                                                "name":  "show_pie_chart",
+                                                                "arguments":  {
+                                                                                  "data_source":  {
+                                                                                                      "data_type":  "spending",
+                                                                                                      "time_range":  "this_month",
+                                                                                                      "title":  "Spending - This Month"
+                                                                                                  }
+                                                                              }
+                                                            }
+                                          },
+                                          {
+                                              "role":  "tool",
+                                              "content":  "Displayed pie chart. Total: Â£3106. Top categories: Rent/Mortgage: Â£687, Spa \u0026 Wellness: Â£576, Other: Â£361, Hobbies: Â£292, Events: Â£274, Home \u0026 Garden: Â£234, Hair \u0026 Beauty: Â£191, Loans: Â£190, Home improvement: Â£112, Clothing \u0026 Shoes: Â£95."
+                                          }
+                                      ]
+                     }
+                 ]
+}
