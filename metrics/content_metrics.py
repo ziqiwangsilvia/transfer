@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 def get_levenshtein_distance_batch(
     predictions: List[str], references: List[str]
-) -> Tuple[List[float], List[float]]:
+) -> Dict[str, List[float]]:
     """
     Compute Levenshtein distance and ratio in batch.
     Currently loops due to no native batch support
@@ -29,12 +29,12 @@ def get_levenshtein_distance_batch(
     for pred, ref in zip(predictions, references):
         distances.append(Levenshtein.distance(pred, ref))
         ratios.append(Levenshtein.ratio(pred, ref))
-    return distances, ratios
+    return {"levenshtein_distance": distances, "levenshtein_ratio": ratios}
 
 
 def get_rouge_score_batch(
     predictions: List[str], references: List[str]
-) -> Tuple[List[float], List[float]]:
+) -> Dict[str, List[float]]:
     """Compute ROUGE-1 and ROUGE-L scores in batch."""
     if len(predictions) != len(references):
         raise ValueError(
@@ -56,12 +56,12 @@ def get_rouge_score_batch(
         if isinstance(scores["rougeL"], float)
         else scores["rougeL"]
     )
-    return rouge1, rougeL
+    return {"rouge1": rouge1, "rougeL": rougeL}
 
 
 def get_bert_score_batch(
     predictions: List[str], references: List[str]
-) -> Tuple[List[float], List[float], List[float]]:
+) -> Dict[str, List[float]]:
     """Compute BERTScore precision, recall, and F1 in batch."""
     if len(predictions) != len(references):
         raise ValueError(
@@ -73,7 +73,11 @@ def get_bert_score_batch(
     results = bert_scorer.compute(
         predictions=predictions, references=references, lang="en"
     )
-    return results["precision"], results["recall"], results["f1"]
+    return {
+        "bert_precision": results["precision"],
+        "bert_recall": results["recall"],
+        "bert_f1": results["f1"],
+    }
 
 
 def _parse_judge_output(output: str, output_type: str) -> float:
@@ -205,10 +209,14 @@ async def compute_all_metrics_batch(
     ground_truths: List[Dict[str, Any]],
     predictions: List[Dict[str, Any]],
     queries: List[str],
+    scoring_config: Any,
     judge_config: Optional[Any] = None,
-    enabled_llm_judge_metrics: Optional[List[str]] = None,
 ) -> List[Dict[str, float]]:
-    """Compute all content evaluation metrics in batch."""
+    """Compute configured content evaluation metrics in batch using registry pattern."""
+    from evaluator.conversational_content.content_metrics_registry import (
+        run_metric_families,
+    )
+
     all_scores: List[Dict[str, float]] = [{} for _ in range(len(ground_truths))]
 
     # Collect NLP-only samples
@@ -224,21 +232,21 @@ async def compute_all_metrics_batch(
     if not nlp_indices:
         return all_scores
 
-    lev_distances, lev_ratios = get_levenshtein_distance_batch(nlp_gts, nlp_preds)
-    rouge1_scores, rougeL_scores = get_rouge_score_batch(nlp_gts, nlp_preds)
-    bert_precisions, bert_recalls, bert_f1s = get_bert_score_batch(nlp_gts, nlp_preds)
+    # Compute non-judge metrics using registry pattern
+    enabled_metric_families = scoring_config.metrics
+    if enabled_metric_families:
+        metrics_dict = run_metric_families(
+            enabled_metric_families, predictions=nlp_preds, references=nlp_gts
+        )
 
-    for i, idx in enumerate(nlp_indices):
-        all_scores[idx] = {
-            "content_levenshtein_distance": lev_distances[i],
-            "content_levenshtein_ratio": lev_ratios[i],
-            "content_rouge1": rouge1_scores[i],
-            "content_rougeL": rougeL_scores[i],
-            "content_bert_precision": bert_precisions[i],
-            "content_bert_recall": bert_recalls[i],
-            "content_bert_f1": bert_f1s[i],
-        }
+        # Distribute metrics to corresponding sample indices
+        for i, idx in enumerate(nlp_indices):
+            all_scores[idx] = {}
+            for metric_name, metric_values in metrics_dict.items():
+                all_scores[idx][metric_name] = metric_values[i]
 
+    # Compute judge metrics separately (async)
+    enabled_llm_judge_metrics = scoring_config.llm_judge_metrics
     if judge_config and judge_config.enabled and enabled_llm_judge_metrics:
         judge_scores = await compute_llm_judge_metrics_batch(
             ground_truths=ground_truths,

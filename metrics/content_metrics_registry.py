@@ -15,7 +15,7 @@ METRIC_FAMILY_FUNCS = {
 METRIC_FAMILY_OUTPUTS = {
     "rouge": ["rouge1", "rougeL"],
     "bert": ["bert_precision", "bert_recall", "bert_f1"],
-    "levenshtein": ["levenshtein_ratio"],
+    "levenshtein": ["levenshtein_distance", "levenshtein_ratio"],
 
     # Judge *subkeys only* (post-processed into content_<subkey>)
     "judge": ["similarity", "context_accuracy", "politeness", "topic_accuracy", "helpfulness"],

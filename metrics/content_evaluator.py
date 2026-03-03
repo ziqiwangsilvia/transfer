@@ -2,7 +2,12 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
+from evaluator.conversational_content.content_metrics import compute_all_metrics_batch
 from evaluator.parser import parse_outputs
+from evaluator.tool_calling.tool_calling_metrics import (
+    get_schema_reliability,
+    get_when2call,
+)
 from evaluator.tool_calling.utils import save_per_item_results, save_predictions
 
 log = logging.getLogger(__name__)
@@ -77,7 +82,7 @@ class ContentEvaluator:
                 "num_samples": 0,
             }
 
-        log.info("Computing content metrics with judge model")
+        log.info("Computing content metrics")
         scores = await self._score_predictions(
             nlp_records, nlp_predictions, nlp_outputs
         )
@@ -111,14 +116,6 @@ class ContentEvaluator:
         outputs: List[Dict[str, Any]],
     ) -> List[Dict[str, float]]:
         """Score NLP predictions using content metrics and the judge model."""
-        from evaluator.conversational_content.content_metrics import (
-            compute_all_metrics_batch,
-        )
-        from evaluator.tool_calling.tool_calling_metrics import (
-            get_schema_reliability,
-            get_when2call,
-        )
-
         # Ground truth message dict -> eval dict format expected by metrics
         # {"role": "assistant", "content": "..."} -> {"type": "nlp", "response": "..."}
         ground_truths_for_metrics = []
@@ -133,12 +130,6 @@ class ContentEvaluator:
             user_turns = [m for m in record["context"] if m["role"] == "user"]
             queries.append(user_turns[-1]["content"] if user_turns else "")
 
-        enabled_llm_judge_metrics = (
-            self.conversational_config.scoring.llm_judge_metrics
-            if self.judge_config and self.judge_config.enabled
-            else None
-        )
-
         if self.judge_config and self.judge_config.enabled:
             log.info("Scoring with judge model (batch)")
         else:
@@ -148,8 +139,8 @@ class ContentEvaluator:
             ground_truths=ground_truths_for_metrics,
             predictions=predictions,
             queries=queries,
+            scoring_config=self.conversational_config.scoring,
             judge_config=self.judge_config,
-            enabled_llm_judge_metrics=enabled_llm_judge_metrics,
         )
 
         # when2call and schema reliability
