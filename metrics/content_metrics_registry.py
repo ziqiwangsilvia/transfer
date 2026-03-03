@@ -1,4 +1,5 @@
-from typing import Any, Dict, List, Optional, Sequence
+import logging
+from typing import Any, Dict, List, Optional
 
 from evaluator.conversational_content.content_metrics import (
     compute_llm_judge_metrics_batch,
@@ -7,7 +8,9 @@ from evaluator.conversational_content.content_metrics import (
     get_rouge_score_batch,
 )
 
-METRIC_FAMILY_FUNCS = {
+log = logging.getLogger(__name__)
+
+METRIC_FAMILY_FUNCS: Dict[str, Any] = {
     "rouge": get_rouge_score_batch,
     "bert": get_bert_score_batch,
     "levenshtein": get_levenshtein_distance_batch,
@@ -29,9 +32,9 @@ METRIC_FAMILY_OUTPUTS: Dict[str, List[str]] = {
 
 
 async def run_metric_families(
-    family_list: Sequence[str],
-    predictions: Sequence[str],
-    references: Sequence[str],
+    family_list: List[str],
+    predictions: List[str],
+    references: List[str],
     **kwargs: Any,
 ) -> Dict[str, List[float]]:
     """Compute metric families and return a flattened dict of submetric -> values.
@@ -46,22 +49,30 @@ async def run_metric_families(
     enabled_llm_judge_metrics: List[str] = kwargs.get("enabled_llm_judge_metrics") or []
 
     for family in family_list:
-        fn = METRIC_FAMILY_FUNCS.get(family)
         subkeys = METRIC_FAMILY_OUTPUTS.get(family, [])
 
-
-        # Judge metrics have different signature
-        if family != "judge":
-            out = fn(predictions=predictions, references=references)
-        else:
-            out = await fn(
+        # Handle judge and non-judge families separately for type clarity
+        if family == "judge":
+            judge_fn = METRIC_FAMILY_FUNCS.get("judge")
+            if judge_fn is None:
+                log.warning("Judge metric family not found")
+                continue
+            out = await judge_fn(  # type: ignore[misc]
                 ground_truths=kwargs.get("ground_truths"),
-                predictions=predictions,
+                predictions=predictions,  # type: ignore[arg-type]
                 queries=kwargs.get("queries"),
                 judge_config=kwargs.get("judge_config"),
                 enabled_llm_judge_metrics=enabled_llm_judge_metrics,
             )
+        else:
+            fn = METRIC_FAMILY_FUNCS.get(family)
+            if fn is None:
+                log.warning("Unknown metric family '%s' — skipping", family)
+                continue
+            out = fn(predictions=predictions, references=references)  # type: ignore[misc]
 
+        # Project only the subkeys we're interested in. For judge family we
+        # only include the enabled judge submetrics.
         for subkey in subkeys:
             if family != "judge" or subkey in enabled_llm_judge_metrics:
                 results[subkey] = out[subkey]
