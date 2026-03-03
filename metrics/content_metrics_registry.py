@@ -22,20 +22,40 @@ METRIC_FAMILY_OUTPUTS = {
 }
 
 
-def run_metric_families(
+async def run_metric_families(
     family_list,
-    *,
     predictions,
     references,
     **kwargs
 ):
+    """Compute metrics for specified families.
+    
+    Args:
+        family_list: List of metric families to compute.
+        predictions: List of predictions.
+        references: List of references.
+        **kwargs: Additional arguments (for judge: ground_truths, queries, judge_config, enabled_llm_judge_metrics).
+    
+    Returns:
+        Dict mapping metric names to lists of scores.
+    """
     results = {}
 
     for family in family_list:
         fn = METRIC_FAMILY_FUNCS[family]
         subkeys = METRIC_FAMILY_OUTPUTS[family]
 
-        out = fn(predictions=predictions, references=references, **kwargs)
+        # Judge metrics have different signature
+        if family == "judge":
+            out = await fn(
+                ground_truths=kwargs.get("ground_truths"),
+                predictions=predictions,
+                queries=kwargs.get("queries"),
+                judge_config=kwargs.get("judge_config"),
+                enabled_llm_judge_metrics=kwargs.get("enabled_llm_judge_metrics"),
+            )
+        else:
+            out = fn(predictions=predictions, references=references, **kwargs)
 
         for subkey in subkeys:
             metric_name = f"content_{subkey}"

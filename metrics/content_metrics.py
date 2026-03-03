@@ -233,11 +233,25 @@ async def compute_all_metrics_batch(
     if not nlp_indices:
         return all_scores
 
-    # Compute non-judge metrics using registry pattern
+    # Determine which families to compute
     enabled_metric_families = scoring_config.metrics
-    if enabled_metric_families:
-        metrics_dict = run_metric_families(
-            enabled_metric_families, predictions=nlp_preds, references=nlp_gts
+    enabled_llm_judge_metrics = scoring_config.llm_judge_metrics
+
+    # Include judge family if enabled
+    families_to_compute = list(enabled_metric_families)
+    if judge_config and judge_config.enabled and enabled_llm_judge_metrics:
+        families_to_compute.append("judge")
+
+    # Compute all metrics using registry
+    if families_to_compute:
+        metrics_dict = await run_metric_families(
+            families_to_compute,
+            predictions=nlp_preds,
+            references=nlp_gts,
+            ground_truths=ground_truths,
+            queries=queries,
+            judge_config=judge_config,
+            enabled_llm_judge_metrics=enabled_llm_judge_metrics,
         )
 
         # Distribute metrics to corresponding sample indices
@@ -245,20 +259,5 @@ async def compute_all_metrics_batch(
             all_scores[idx] = {}
             for metric_name, metric_values in metrics_dict.items():
                 all_scores[idx][metric_name] = metric_values[i]
-
-    # Compute judge metrics separately (async)
-    enabled_llm_judge_metrics = scoring_config.llm_judge_metrics
-    if judge_config and judge_config.enabled and enabled_llm_judge_metrics:
-        judge_scores = await compute_llm_judge_metrics_batch(
-            ground_truths=ground_truths,
-            predictions=predictions,
-            queries=queries,
-            judge_config=judge_config,
-            enabled_llm_judge_metrics=enabled_llm_judge_metrics,
-        )
-
-        # Merge judge scores into all_scores
-        for idx, judge_score in enumerate(judge_scores):
-            all_scores[idx].update(judge_score)
 
     return all_scores
