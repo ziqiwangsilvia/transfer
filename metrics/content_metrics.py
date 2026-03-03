@@ -1,14 +1,12 @@
 import asyncio
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Tuple, cast
 
 import evaluate
 import Levenshtein
 from openai import AsyncOpenAI
 from tqdm.asyncio import tqdm_asyncio
-
-from evaluator.conversational_content.content_metrics_registry import run_metric_families
 
 log = logging.getLogger(__name__)
 
@@ -162,10 +160,10 @@ async def compute_llm_judge_metrics_batch(
     enabled_llm_judge_metrics: List[str],
 ) -> List[Dict[str, float]]:
     """Compute LLM-as-judge metrics via OpenAI for all enabled metrics.
-    
+
     Note: Expects pre-filtered NLP-only predictions, ground_truths, and queries.
     """
-    all_scores: List[Dict[str, float]] = [{} for _ in range(len(predictions))]
+    all_scores: Dict[str, List[float]] = {key: [] for key in enabled_llm_judge_metrics}
 
     if not judge_config or not judge_config.enabled:
         return all_scores
@@ -192,63 +190,8 @@ async def compute_llm_judge_metrics_batch(
 
         for i, raw_output in enumerate(raw_outputs):
             score = _parse_judge_output(raw_output, prompt_config.output_type)
-            all_scores[i][prompt_config.metric_name] = score
+            all_scores[prompt_config.metric_name].append(score)
 
     await asyncio.gather(*[run_single_metric(m) for m in enabled_llm_judge_metrics])
-
-    return all_scores
-
-
-async def compute_all_metrics_batch(
-    ground_truths: List[Dict[str, Any]],
-    predictions: List[Dict[str, Any]],
-    queries: List[str],
-    scoring_config: Any,
-    judge_config: Optional[Any] = None,
-) -> List[Dict[str, float]]:
-    """Compute configured content evaluation metrics in batch using registry pattern."""
-    all_scores: List[Dict[str, float]] = [{} for _ in range(len(ground_truths))]
-
-    # Collect NLP-only samples and record their original positions so that
-    # computed metrics can be placed back in the same order as the input
-    nlp_indices, nlp_gts, nlp_preds, nlp_queries = [], [], [], []
-    for idx, (gt, pred, query) in enumerate(zip(ground_truths, predictions, queries)):
-        if gt.get("type") == "nlp" and pred.get("type") == "nlp":
-            gt_text, pred_text = gt.get("response", ""), pred.get("response", "")
-            if gt_text and pred_text:
-                nlp_indices.append(idx)
-                nlp_gts.append({"type": "nlp", "response": gt_text})
-                nlp_preds.append({"type": "nlp", "response": pred_text})
-                nlp_queries.append(query)
-
-    if not nlp_indices:
-        return all_scores
-
-    # Determine which families to compute
-    enabled_metric_families = scoring_config.metrics
-    enabled_llm_judge_metrics = scoring_config.llm_judge_metrics
-
-    # Include judge family if enabled
-    families_to_compute = list(enabled_metric_families)
-    if judge_config and judge_config.enabled and enabled_llm_judge_metrics:
-        families_to_compute.append("judge")
-
-    # Compute all metrics using registry with pre-filtered NLP-only data
-    if families_to_compute:
-        metrics_dict = await run_metric_families(
-            families_to_compute,
-            predictions=nlp_preds,
-            references=nlp_gts,
-            ground_truths=nlp_gts,
-            queries=nlp_queries,
-            judge_config=judge_config,
-            enabled_llm_judge_metrics=enabled_llm_judge_metrics,
-        )
-
-        # Distribute metrics to corresponding original indices
-        for i, idx in enumerate(nlp_indices):
-            all_scores[idx] = {}
-            for metric_name, metric_values in metrics_dict.items():
-                all_scores[idx][metric_name] = metric_values[i]
 
     return all_scores

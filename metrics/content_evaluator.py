@@ -2,7 +2,9 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List
 
-from evaluator.conversational_content.content_metrics import compute_all_metrics_batch
+from evaluator.conversational_content.content_metrics_registry import (
+    compute_all_metrics_batch,
+)
 from evaluator.parser import parse_outputs
 from evaluator.tool_calling.tool_calling_metrics import (
     get_schema_reliability,
