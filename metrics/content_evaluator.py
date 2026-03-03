@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from evaluator.conversational_content.content_metrics_registry import (
     compute_all_metrics_batch,
@@ -57,21 +57,9 @@ class ContentEvaluator:
         )
         predictions = [p.to_eval_dict() for p in parsed]
 
-        # Filter to NLP-relevant samples — any GT with a "content" key:
-        #   - {"role": "assistant", "content": "..."} ->  standard NLP response GT
-        #   - {"role": "tool",      "content": "..."} ->  tool-result data summary GT;
-        nlp_records = []
-        nlp_outputs = []
-        nlp_predictions = []
-
-        for record, output, prediction in zip(records, outputs, predictions):
-            gt = record["ground_truth"]
-
-            if "content" in gt:
-                nlp_records.append(record)
-                nlp_outputs.append(output)
-                nlp_predictions.append(prediction)
-
+        nlp_records, nlp_outputs, nlp_predictions = self._filter_nlp_samples(
+            records, outputs, predictions
+        )
         log.info(f"{len(nlp_records)} NLP samples (of {len(records)} total)")
 
         if not nlp_records:
@@ -110,6 +98,33 @@ class ContentEvaluator:
             "results_file": str(results_file),
             "num_samples": len(nlp_records),
         }
+
+    # ------------------------------------------------------------------
+    # helpers
+    # ------------------------------------------------------------------
+    def _filter_nlp_samples(
+        self,
+        records: List[Dict[str, Any]],
+        outputs: List[Dict[str, Any]],
+        predictions: List[Dict[str, Any]],
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """Return only samples whose ground truth contains a ``content`` field.
+
+        Keeps the ordering of the original lists and applies the same filter to
+        ``records``, ``outputs``, and ``predictions``.  This isolates NLP
+        examples from tool responses.
+        """
+        nlp_records: List[Dict[str, Any]] = []
+        nlp_outputs: List[Dict[str, Any]] = []
+        nlp_predictions: List[Dict[str, Any]] = []
+
+        for rec, out, pred in zip(records, outputs, predictions):
+            if "content" in rec.get("ground_truth", {}):
+                nlp_records.append(rec)
+                nlp_outputs.append(out)
+                nlp_predictions.append(pred)
+
+        return nlp_records, nlp_outputs, nlp_predictions
 
     async def _score_predictions(
         self,
