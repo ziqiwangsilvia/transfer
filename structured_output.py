@@ -79,31 +79,58 @@ print("Stacked Bar:", get_gemma_response("Compare my income and spending month-b
 print("\nChat:", get_gemma_response("What is a stacked bar chart useful for?"))
 
 
-        def _message_to_dict(message) -> Dict[str, Any]:
-            """Convert an API response message into a plain result dict."""
-            if message.tool_calls:
+import json
+from typing import Dict, Any
+
+def _message_to_dict(message) -> Dict[str, Any]:
+    """Convert an API response message into a plain result dict."""
+    
+    # 1. Handle native tool calls (if any)
+    if message.tool_calls:
+        return {
+            "role": "assistant",
+            "tool_calls": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tc.function.name,
+                        "arguments": tc.function.arguments,
+                    },
+                }
+                for tc in message.tool_calls
+            ],
+        }
+
+    content = message.content or ""
+
+    # 2. Handle Gemma/vLLM Structured JSON Output
+    # We check if it's a JSON string and contains our 'tool_calls' key
+    if structured_labels and content.strip().startswith("{"):
+        try:
+            parsed = json.loads(content)
+            
+            # If the model chose to use a tool (based on our AssistantResponse schema)
+            if "tool_calls" in parsed and parsed["tool_calls"]:
+                tc = parsed["tool_calls"]
                 return {
                     "role": "assistant",
                     "tool_calls": [
                         {
                             "type": "function",
                             "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
+                                "name": tc["name"],
+                                "arguments": json.dumps(tc["args"]), # Stringify to match API standard
                             },
                         }
-                        for tc in message.tool_calls
                     ],
                 }
+            
+            # If the model chose a direct conversational answer
+            if "content" in parsed:
+                content = parsed["content"] or ""
+                
+        except (json.JSONDecodeError, KeyError, TypeError):
+            # Fallback to raw content if parsing fails
+            pass
 
-            content = message.content or ""
-
-            # Handle structured JSON output (guardrailing classification)
-            if structured_labels and content.startswith("{"):
-                try:
-                    parsed = json.loads(content)
-                    content = parsed.get("classification", content)
-                except Exception:
-                    pass
-
-            return {"role": "assistant", "content": content}
+    return {"role": "assistant", "content": content}
