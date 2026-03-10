@@ -134,3 +134,23 @@ def _message_to_dict(message) -> Dict[str, Any]:
             pass
 
     return {"role": "assistant", "content": content}
+
+ def _build_kwargs(messages: List[Dict[str, Any]]) -> Dict[str, Any]:
+            kwargs: Dict[str, Any] = {
+                "model": self.config.name,
+                "messages": messages,
+                "temperature": self.config.temperature,
+                "max_tokens": self.config.max_tokens,
+            }
+            if stop_sequences:
+                kwargs["stop"] = stop_sequences
+            if tools and self.config.template_has_tool_token:
+                kwargs["tools"] = tools
+                kwargs["tool_choice"] = "auto"
+
+            if self.config.use_structured:
+                kwargs["extra_body"] ={
+                "guided_json": AssistantResponse.model_json_schema(),
+                "guided_decoding_backend": "xgrammar"
+            }
+            return kwargs
