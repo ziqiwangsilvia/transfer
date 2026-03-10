@@ -77,3 +77,33 @@ print("Stacked Bar:", get_gemma_response("Compare my income and spending month-b
 
 # 2. Conversational Trigger
 print("\nChat:", get_gemma_response("What is a stacked bar chart useful for?"))
+
+
+        def _message_to_dict(message) -> Dict[str, Any]:
+            """Convert an API response message into a plain result dict."""
+            if message.tool_calls:
+                return {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": tc.function.name,
+                                "arguments": tc.function.arguments,
+                            },
+                        }
+                        for tc in message.tool_calls
+                    ],
+                }
+
+            content = message.content or ""
+
+            # Handle structured JSON output (guardrailing classification)
+            if structured_labels and content.startswith("{"):
+                try:
+                    parsed = json.loads(content)
+                    content = parsed.get("classification", content)
+                except Exception:
+                    pass
+
+            return {"role": "assistant", "content": content}
