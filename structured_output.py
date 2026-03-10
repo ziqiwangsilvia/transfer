@@ -5,36 +5,50 @@ from openai import OpenAI
 
 # --- 1. Tool Argument Schemas ---
 
+# Define the allowed financial categories
+FinancialCategory = Literal[
+    "Groceries", "Restaurants", "Coffee & Bars", "Public transport", "Fuel", 
+    "Taxi & Car sharing", "Rent/Mortgage", "Utilities", "Home improvement", 
+    "Clothing & Shoes", "Electronics", "Home & Garden", "Subscriptions", 
+    "Hobbies", "Events", "Insurance", "Bank fees", "Loans", "Pharmacy", 
+    "Sport & Fitness", "Medical", "Hair & Beauty", "Spa & Wellness"
+]
+
 TimeRange = Literal["this_month", "last_month", "last_30_days", "last_90_days", "this_year"]
 
+# Shared Filter for all tools
+class DataFilter(BaseModel):
+    categories: Optional[List[FinancialCategory]] = None
+    payees: Optional[List[str]] = None
+
+# --- Tool Argument Definitions ---
 class LineChartArgs(BaseModel):
     metric: Literal["balance", "net_cash_flow", "income", "spending"]
     time_range: TimeRange
     title: Optional[str] = None
+    filter: Optional[DataFilter] = None
 
 class PieChartArgs(BaseModel):
     data_type: Literal["spending", "income"]
     time_range: TimeRange
     group_by: Literal["category", "payee"]
-    limit: Optional[int] = None
-    categories: Optional[List[str]] = None 
+    limit: Optional[int] = Field(None, ge=1)
+    filter: Optional[DataFilter] = None
 
 class StackedBarArgs(BaseModel):
-    metrics: List[str] = Field(..., description="Metrics to stack, e.g., ['income', 'spending']")
+    metrics: List[Literal["income", "spending"]]
     time_range: TimeRange
-    group_by: Literal["month", "category"] = "month"
-    title: Optional[str] = None
+    group_by: Literal["month", "category"]
+    filter: Optional[DataFilter] = None
 
-# --- 2. Unified Output Structure ---
-
+# --- Unified Structure ---
 class ToolCall(BaseModel):
-    # Added 'show_stacked_bar' to the literal names
     name: Literal["show_line_chart", "show_pie_chart", "show_stacked_bar"]
     args: Union[LineChartArgs, PieChartArgs, StackedBarArgs]
 
 class AssistantResponse(BaseModel):
-    content: Optional[str] = Field(None, description="Direct conversational response")
-    tool_calls: Optional[ToolCall] = Field(None, description="Structured tool call")
+    content: Optional[str] = Field(None, description="Direct answer if no tool is used")
+    tool_calls: Optional[ToolCall] = Field(None, description="Tool data if chart is requested")
 
 # --- 3. Execution ---
 
