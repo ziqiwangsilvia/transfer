@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional, Union, Annotated
+from typing import List, Literal, Optional, Union, Dict, Any
 from pydantic import BaseModel, Field
 
 FinancialCategory = Literal[
@@ -23,29 +23,33 @@ class DataFilter(BaseModel):
     categories: Optional[List[FinancialCategory]] = None
     payees: Optional[List[PayeeName]] = None
 
+class CommonDataSource(BaseModel):
+    data_type: Literal["spending", "income"]
+    time_range: TimeRange
+    group_by: Literal["category", "payee"]
+    limit: Optional[int] = None
+    filter: Optional[DataFilter] = None
+
+class StatsDataSource(BaseModel):
+    data_type: Literal["balance", "income", "spending"]
+    time_range: TimeRange
+    filter: Optional[DataFilter] = None
+
 class LineChartArgs(BaseModel):
     metric: Literal["balance", "net_cash_flow", "income", "spending"]
     time_range: TimeRange
     title: Optional[str] = None
-    filter: Optional[DataFilter] = None
 
 class PieChartArgs(BaseModel):
-    data_type: Literal["spending", "income"]
-    time_range: TimeRange
-    group_by: Literal["category", "payee"]
-    limit: Optional[int] = Field(None, ge=1)
-    filter: Optional[DataFilter] = None
+    data_source: CommonDataSource
+    title: Optional[str] = None
 
 class StackedBarArgs(BaseModel):
-    metrics: List[Literal["income", "spending"]]
-    time_range: TimeRange
-    group_by: Literal["month", "category"]
-    filter: Optional[DataFilter] = None
+    data_source: CommonDataSource
+    title: Optional[str] = None
 
 class StatsRetrievalArgs(BaseModel):
-    data_type: Literal["balance", "income", "spending"]
-    time_range: TimeRange
-    filter: Optional[DataFilter] = None
+    data_source: StatsDataSource
     title: Optional[str] = None
 
 class ToolCall(BaseModel):
@@ -53,22 +57,5 @@ class ToolCall(BaseModel):
     args: Union[LineChartArgs, PieChartArgs, StackedBarArgs, StatsRetrievalArgs]
 
 class AssistantResponse(BaseModel):
-    content: Optional[str] = Field(None)
-    tool_calls: Optional[ToolCall] = Field(None)
-
-def _build_kwargs(messages: List[Dict[str, Any]]) -> Dict[str, Any]:
-    kwargs: Dict[str, Any] = {
-        "model": self.config.name,
-        "messages": messages,
-        "temperature": self.config.temperature,
-        "max_tokens": self.config.max_tokens,
-    }
-    
-    if self.config.use_structured:
-        kwargs["extra_body"] = {
-            "structured_outputs": {
-                "json": AssistantResponse.model_json_schema(),
-                "backend": "xgrammar"
-            }
-        }
-    return kwargs
+    content: Optional[str] = None
+    tool_calls: Optional[ToolCall] = None
