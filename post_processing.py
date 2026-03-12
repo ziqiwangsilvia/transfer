@@ -40,3 +40,49 @@ def parse_response(output):
     except (json.JSONDecodeError, TypeError):
         pass
     return None
+
+
+def get_schema_reliability(
+    ground_truth: Dict[str, Any],
+    prediction: Dict[str, Any],
+    raw_output_text: str,
+    post_processing: bool = False,
+) -> Tuple[Optional[float], float]:
+    """
+    Measure how accurately the model formatted its output before parsing.
+
+    Scores:
+      raw:       1.0 if the output was parseable without any cleanup,
+                 None if post_processing=False (native tool call path, no raw text).
+                 For NLP ground truth: 1.0 if model correctly gave NLP, else 0.0.
+      processed: 1.0 if parsing ultimately yielded a valid tool call,
+                 0.0 otherwise (or NLP: mirrors raw).
+    """
+    if ground_truth.get("type") == "nlp":
+        score = 1.0 if prediction.get("type") == "nlp" else 0.0
+        if not post_processing:
+            return None, score
+        return score, score
+
+    processed = 1.0 if prediction.get("type") == "tool" else 0.0
+
+    if not post_processing:
+        return None, processed
+
+    text = raw_output_text.strip()
+    raw = 0.0
+    if text:
+        if _is_valid_tool_call_pythonic(text):
+            raw = 1.0
+        else:
+            try:
+                parsed = json.loads(text)
+                if _is_valid_tool_call_json(parsed):
+                    raw = 1.0
+            except (json.JSONDecodeError, ValueError):
+                pass
+    else:
+        # Native tool_call path — no raw text to inspect; treat as clean
+        raw = processed
+
+    return raw, processed
