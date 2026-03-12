@@ -44,45 +44,39 @@ def parse_response(output):
 
 def get_schema_reliability(
     ground_truth: Dict[str, Any],
-    prediction: Dict[str, Any],
-    raw_output_text: str,
-    post_processing: bool = False,
-) -> Tuple[Optional[float], float]:
+    processed_output: Optional[Dict[str, Any]] = None,
+    raw_output_text: Optional[str] = None,
+) -> Tuple[Optional[float], Optional[float]]:
     """
-    Measure how accurately the model formatted its output before parsing.
-
-    Scores:
-      raw:       1.0 if the output was parseable without any cleanup,
-                 None if post_processing=False (native tool call path, no raw text).
-                 For NLP ground truth: 1.0 if model correctly gave NLP, else 0.0.
-      processed: 1.0 if parsing ultimately yielded a valid tool call,
-                 0.0 otherwise (or NLP: mirrors raw).
+    Calculates schema reliability for both raw and processed outputs.
+    
+    Returns:
+        (schema_reliability_raw, schema_reliability_processed)
     """
-    if ground_truth.get("type") == "nlp":
-        score = 1.0 if prediction.get("type") == "nlp" else 0.0
-        if not post_processing:
-            return None, score
-        return score, score
+    # Only calculate for tool calls
+    if ground_truth.get("type") != "tool":
+        return None, None
 
-    processed = 1.0 if prediction.get("type") == "tool" else 0.0
-
-    if not post_processing:
-        return None, processed
-
-    text = raw_output_text.strip()
-    raw = 0.0
-    if text:
-        if _is_valid_tool_call_pythonic(text):
-            raw = 1.0
+    # 1. Schema Reliability for Raw Output (Before any cleanup/stripping)
+    schema_reliability_raw = None
+    if raw_output_text is not None:
+        text = raw_output_text.strip()
+        if not text:
+            # Reverted: assume native tool path with no text is 'clean'
+            schema_reliability_raw = 1.0
         else:
             try:
-                parsed = json.loads(text)
-                if _is_valid_tool_call_json(parsed):
-                    raw = 1.0
+                # Valid only if it parses without .replace('\\/', '/') or \n stripping
+                json.loads(text)
+                schema_reliability_raw = 1.0
             except (json.JSONDecodeError, ValueError):
-                pass
-    else:
-        # Native tool_call path — no raw text to inspect; treat as clean
-        raw = processed
+                # Fallback check for pythonic format
+                schema_reliability_raw = 1.0 if _is_valid_tool_call_pythonic(text) else 0.0
 
-    return raw, processed
+    # 2. Schema Reliability for Processed Output (After your cleanup logic)
+    schema_reliability_processed = None
+    if processed_output is not None:
+        # 1.0 if the final processed dictionary is a valid tool call
+        schema_reliability_processed = 1.0 if processed_output.get("type") == "tool" else 0.0
+
+    return schema_reliability_raw, schema_reliability_processed
