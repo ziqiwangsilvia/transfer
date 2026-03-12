@@ -1,45 +1,73 @@
 import json
+import re
+from typing import Any, Dict, List
 
-def clean_value(v):
-    """Deep cleans newlines from strings, lists, or dicts."""
-    if isinstance(v, str):
-        return v.replace("\n", " ").strip()
-    if isinstance(v, dict):
-        return {k: clean_value(val) for k, val in v.items()}
-    if isinstance(v, list):
-        return [clean_value(i) for i in v]
-    return v
+from processing.post_processing.utils import KNOWN_TOOL_NAMES, ParsedResponse, ToolCall
 
-def parse_response(output):
+
+def _parse_arguments(raw_args: Any) -> Dict[str, Any]:
+    """Parse an arguments field that may be a JSON string (OpenAI) or already a dict (vLLM/Llama)."""
+    return json.loads(raw_args) if isinstance(raw_args, str) else raw_args
+
+
+def _tool_calls_from_json_list(items: List[Any]) -> List[ToolCall]:
+    """Extract ToolCalls from a parsed JSON list, handling all known formats."""
+    tool_calls = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        # Tool-as-key format: {"show_line_chart": {...}}
+        tool_key = next((k for k in item if k in KNOWN_TOOL_NAMES), None)
+        if tool_key:
+            tool_calls.append(ToolCall(name=tool_key, parameters=item[tool_key]))
+        # Standard name/tool field
+        elif "name" in item or "tool" in item:
+            tool_calls.append(ToolCall.from_dict(item))
+        # OpenAI function object: {"type": "function", "function": {"name": ..., "parameters": ...}}
+        elif "function" in item:
+            try:
+                fn = item["function"]
+                raw_args = fn.get("arguments") or fn.get("parameters") or {}
+                tool_calls.append(
+                    ToolCall(name=fn["name"], parameters=_parse_arguments(raw_args))
+                )
+            except Exception:
+                continue
+    return tool_calls
+
+
+def parse_json_output(output: str) -> ParsedResponse:
+    """
+    Parse model output into a ParsedResponse using JSON strategies.
+
+    Attempts in order:
+    0. Structured outputs (WIP)
+    1. Direct JSON parse (clean JSON output)
+    2. Fence-stripped JSON parse (```json ... ``` wrapped output)
+    3. Substring extraction — find the first JSON array or object in mixed content
+    """
+    output = output.strip()
+
+    # --- Attempt 0: structured output ---
     try:
-        # 1. Parse JSON (automatically handles \/ and escaped \n)
-        parsed = json.loads(output.strip())
-        
-        # 2. Deep clean the entire object to remove actual \n characters
-        parsed = clean_value(parsed)
+        output_structured = output.strip().replace("\\/", "/")
+        parsed = json.loads(output_structured)
+        if isinstance(parsed, dict):
+            if "tool_calls" in parsed and isinstance(parsed, dict):
+                tc = parsed["tool_calls"]
+                return ParsedResponse(
+                    "tool",
+                    tools = [ToolCall(
+                        name=tc.get("name", ""),
+                        parameters=tc.get("arguments", tc.get("args", {})),
+                    )],
+                )
+            if "content" in parsed and len(parsed) == 1:
+                return ParsedResponse("nlp", response=parsed["content"])        
 
-        if not isinstance(parsed, dict): return None
-
-        # 3. Handle Tool Calls
-        if "tool_calls" in parsed:
-            tc = parsed["tool_calls"]
-            # Ensure it's a list for the ToolCall constructor
-            items = tc if isinstance(tc, list) else [tc]
-            return ParsedResponse(
-                "tool",
-                tools=[ToolCall(
-                    name=t.get("name", ""),
-                    parameters=t.get("arguments") or t.get("args") or {}
-                ) for t in items]
-            )
-
-        # 4. Handle NLP Content
-        if "content" in parsed:
-            return ParsedResponse("nlp", response=parsed["content"])
-
-    except (json.JSONDecodeError, TypeError):
+    except (json.JSONDecodeError, ValueError):
         pass
-    return None
+
 
 
 def get_schema_reliability(
@@ -80,3 +108,23 @@ def get_schema_reliability(
         schema_reliability_processed = 1.0 if processed_output.get("type") == "tool" else 0.0
 
     return schema_reliability_raw, schema_reliability_processed
+
+
+"output": {
+      "role": "assistant",
+      "content": "{\"tool_calls\": {\"name\": \"show_pie_chart\", \"args\": {\"data_type\": \"spending\", \"time_range\": \"this_month\", \"group_by\": \"payee\", \"categories\": [\"Restaurants\", \"Taxi & Car sharing\", \"Public transport\", \"Groceries\", \"Events\", \"Rent\\/Mortgage\", \"Utilities\", \"Insurance\", \"Subscriptions\", \"Hobbies\", \"Clothing & Shoes\", \"Electronics\", \"Home & Garden\", \"Medical\", \"Groceries\", \"Fuel\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groc"
+    },
+    "parsed_output": {
+      "type": "nlp",
+      "response": "{\"tool_calls\": {\"name\": \"show_pie_chart\", \"args\": {\"data_type\": \"spending\", \"time_range\": \"this_month\", \"group_by\": \"payee\", \"categories\": [\"Restaurants\", \"Taxi & Car sharing\", \"Public transport\", \"Groceries\", \"Events\", \"Rent\\/Mortgage\", \"Utilities\", \"Insurance\", \"Subscriptions\", \"Hobbies\", \"Clothing & Shoes\", \"Electronics\", \"Home & Garden\", \"Medical\", \"Groceries\", \"Fuel\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groc"
+    },
+
+
+"output": {
+      "role": "assistant",
+      "content": "{\"tool_calls\": {\"name\": \"show_line_chart\", \"args\": {\"chart_type\": \"cash_flow\", \"time_range\": \"this_year\"\n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n    \n"
+    },
+    "parsed_output": {
+      "type": "nlp",
+      "response": "{\"tool_calls\": {\"name\": \"show_line_chart\", \"args\": {\"chart_type\": \"cash_flow\", \"time_range\": \"this_year\""
+    },
