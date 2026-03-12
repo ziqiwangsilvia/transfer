@@ -70,46 +70,6 @@ def parse_json_output(output: str) -> ParsedResponse:
 
 
 
-def get_schema_reliability(
-    ground_truth: Dict[str, Any],
-    processed_output: Optional[Dict[str, Any]] = None,
-    raw_output_text: Optional[str] = None,
-) -> Tuple[Optional[float], Optional[float]]:
-    """
-    Calculates schema reliability for both raw and processed outputs.
-    
-    Returns:
-        (schema_reliability_raw, schema_reliability_processed)
-    """
-    # Only calculate for tool calls
-    if ground_truth.get("type") != "tool":
-        return None, None
-
-    # 1. Schema Reliability for Raw Output (Before any cleanup/stripping)
-    schema_reliability_raw = None
-    if raw_output_text is not None:
-        text = raw_output_text.strip()
-        if not text:
-            # Reverted: assume native tool path with no text is 'clean'
-            schema_reliability_raw = 1.0
-        else:
-            try:
-                # Valid only if it parses without .replace('\\/', '/') or \n stripping
-                json.loads(text)
-                schema_reliability_raw = 1.0
-            except (json.JSONDecodeError, ValueError):
-                # Fallback check for pythonic format
-                schema_reliability_raw = 1.0 if _is_valid_tool_call_pythonic(text) else 0.0
-
-    # 2. Schema Reliability for Processed Output (After your cleanup logic)
-    schema_reliability_processed = None
-    if processed_output is not None:
-        # 1.0 if the final processed dictionary is a valid tool call
-        schema_reliability_processed = 1.0 if processed_output.get("type") == "tool" else 0.0
-
-    return schema_reliability_raw, schema_reliability_processed
-
-
 "output": {
       "role": "assistant",
       "content": "{\"tool_calls\": {\"name\": \"show_pie_chart\", \"args\": {\"data_type\": \"spending\", \"time_range\": \"this_month\", \"group_by\": \"payee\", \"categories\": [\"Restaurants\", \"Taxi & Car sharing\", \"Public transport\", \"Groceries\", \"Events\", \"Rent\\/Mortgage\", \"Utilities\", \"Insurance\", \"Subscriptions\", \"Hobbies\", \"Clothing & Shoes\", \"Electronics\", \"Home & Garden\", \"Medical\", \"Groceries\", \"Fuel\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groceries\", \"Groc"
@@ -128,3 +88,39 @@ def get_schema_reliability(
       "type": "nlp",
       "response": "{\"tool_calls\": {\"name\": \"show_line_chart\", \"args\": {\"chart_type\": \"cash_flow\", \"time_range\": \"this_year\""
     },
+
+
+from json_repair import repair_json
+import json
+
+def parse_json_output(output: str) -> ParsedResponse:
+    output = output.strip()
+    
+    # Attempt to fix truncated or repetitive JSON
+    try:
+        # repair_json returns a string; json.loads turns it into a dict
+        repaired_string = repair_json(output)
+        parsed = json.loads(repaired_string)
+        
+        if isinstance(parsed, dict):
+            # Check for tool_calls structure
+            if "tool_calls" in parsed:
+                tc = parsed["tool_calls"]
+                # Handle cases where tool_calls might be a list or a dict
+                if isinstance(tc, dict):
+                    return ParsedResponse(
+                        "tool",
+                        tools=[ToolCall(
+                            name=tc.get("name", ""),
+                            parameters=tc.get("arguments", tc.get("args", {})),
+                        )],
+                    )
+            
+            # If it's just a text response wrapped in JSON
+            if "content" in parsed:
+                return ParsedResponse("nlp", response=parsed["content"])
+                
+    except Exception:
+        pass
+    
+    # ... your existing fallback logic
