@@ -2,7 +2,7 @@ import json
 import logging
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import cast
 
 log = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ def load_dataset(
         raise FileNotFoundError(f"Dataset not found: {path}")
 
     with open(dataset_path, "r") as f:
-        raw = json.load(f)
+        raw = cast(Dict[str, Any], json.load(f))
 
     if not isinstance(raw, dict):
         log.warning(
@@ -96,7 +96,7 @@ def load_dataset(
     for cat in DATASET_CATEGORIES:
         if cat not in wanted:
             continue
-        samples = raw.get(cat, [])
+        samples = cast(List[Dict[str, Any]], raw.get(cat, []))
         if not isinstance(samples, list):
             log.warning(
                 "Category %r has type %s, expected list - skipping",

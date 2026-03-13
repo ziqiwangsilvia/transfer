@@ -53,9 +53,8 @@ def parse_json_output(output: str) -> ParsedResponse:
     # --- Attempt 0: structured output ---
     # Attempt to fix truncated or repetitive JSON
     try:
-        # repair_json returns a string; json.loads turns it into a dict
-        repaired_string = repair_json(output, return_objects=False)
-        parsed = json.loads(repaired_string)
+        # repair_json with return_objects=True returns the parsed object or original string
+        parsed = repair_json(output, return_objects=True)
 
         if isinstance(parsed, dict):
             # Check for tool_calls structure
