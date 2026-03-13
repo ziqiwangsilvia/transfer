@@ -1,0 +1,268 @@
+[
+    {
+        "name": "show_line_chart",
+        "properties": {
+            "metric": {
+                "description": "What data to show on the line chart.",
+                "enum": [
+                    "balance",
+                    "net_cash_flow",
+                    "income",
+                    "spending"
+                ],
+                "title": "LineChartMetric",
+                "type": "string"
+            },
+            "time_range": {
+                "enum": [
+                    "this_month",
+                    "last_month",
+                    "last_30_days",
+                    "last_90_days",
+                    "this_year"
+                ],
+                "title": "TimeRange",
+                "type": "string"
+            },
+            "title": {
+                "description": "Chart title that describes the visualization",
+                "title": "Title",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "show_pie_chart",
+        "properties": {
+            "data_source": {
+                "properties": {
+                    "source": {
+                        "enum": [
+                            "transactions"
+                        ],
+                        "title": "DataSourceType",
+                        "type": "string"
+                    },
+                    "data_type": {
+                        "enum": [
+                            "spending",
+                            "income"
+                        ],
+                        "title": "DataType",
+                        "type": "string"
+                    },
+                    "time_range": {
+                        "enum": [
+                            "this_month",
+                            "last_month",
+                            "last_30_days",
+                            "last_90_days",
+                            "this_year"
+                        ],
+                        "title": "TimeRange",
+                        "type": "string"
+                    },
+                    "time_granularity": {
+                        "enum": [
+                            "total",
+                            "monthly"
+                        ],
+                        "title": "TimeGranularity",
+                        "type": "string"
+                    },
+                    "group_by": {
+                        "enum": [
+                            "category",
+                            "payee"
+                        ],
+                        "title": "GroupByField",
+                        "type": "string"
+                    },
+                    "limit": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "default": 10,
+                        "description": "Max items to show. Remaining items grouped into 'Other'.",
+                        "title": "Limit"
+                    },
+                    "filter": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "categories": {
+                                        "anyOf": [
+                                            {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ],
+                                        "default": null,
+                                        "description": "List of category names to filter by",
+                                        "title": "Categories"
+                                    },
+                                    "payees": {
+                                        "anyOf": [
+                                            {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ],
+                                        "default": null,
+                                        "description": "List of payee names to filter by",
+                                        "title": "Payees"
+                                    }
+                                },
+                                "title": "DataFilter",
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "default": null
+                    }
+                },
+                "title": "DataSourceFilterable",
+                "type": "object"
+            },
+            "title": {
+                "description": "Chart title that describes the visualization",
+                "title": "Title",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "show_stacked_bar_chart",
+        "properties": {
+            "data_source": {
+                "properties": {
+                    "source": {
+                        "enum": [
+                            "transactions"
+                        ],
+                        "title": "DataSourceType",
+                        "type": "string"
+                    },
+                    "data_type": {
+                        "enum": [
+                            "spending",
+                            "income"
+                        ],
+                        "title": "DataType",
+                        "type": "string"
+                    },
+                    "time_range": {
+                        "enum": [
+                            "this_month",
+                            "last_month",
+                            "last_30_days",
+                            "last_90_days",
+                            "this_year"
+                        ],
+                        "title": "TimeRange",
+                        "type": "string"
+                    },
+                    "time_granularity": {
+                        "enum": [
+                            "total",
+                            "monthly"
+                        ],
+                        "title": "TimeGranularity",
+                        "type": "string"
+                    },
+                    "group_by": {
+                        "enum": [
+                            "category",
+                            "payee"
+                        ],
+                        "title": "GroupByField",
+                        "type": "string"
+                    },
+                    "limit": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "default": 10,
+                        "description": "Max items to show. Remaining items grouped into 'Other'.",
+                        "title": "Limit"
+                    },
+                    "filter": {
+                        "anyOf": [
+                            {
+                                "properties": {
+                                    "categories": {
+                                        "anyOf": [
+                                            {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ],
+                                        "default": null,
+                                        "description": "List of category names to filter by",
+                                        "title": "Categories"
+                                    },
+                                    "payees": {
+                                        "anyOf": [
+                                            {
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "type": "array"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ],
+                                        "default": null,
+                                        "description": "List of payee names to filter by",
+                                        "title": "Payees"
+                                    }
+                                },
+                                "title": "DataFilter",
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "default": null
+                    }
+                },
+                "title": "DataSourceFilterable",
+                "type": "object"
+            },
+            "title": {
+                "description": "Chart title that describes the visualization",
+                "title": "Title",
+                "type": "string"
+            }
+        }
+    }
+]

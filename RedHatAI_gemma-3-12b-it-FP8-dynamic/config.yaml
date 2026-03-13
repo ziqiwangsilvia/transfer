@@ -1,0 +1,103 @@
+benchmarks:
+  conversational:
+    description: Evaluate conversational content quality for NLP responses using multiple
+      metrics including LLM-as-judge
+    enabled: true
+    scoring:
+      llm_judge_metrics:
+      - content_similarity
+      - context_accuracy
+      - content_politeness
+      - topic_accuracy
+      - content_helpfulness
+      metrics:
+      - rouge
+      - bert
+      - levenshtein
+  guardrailing:
+    continue_on_error: true
+    data:
+      field_label: prompt_label
+      field_prompt: prompt
+      field_violated_categories: violated_categories
+      format: jsonl
+      max_samples: null
+      path: dataset/guardrailing/guardrails_data.jsonl
+      seed: 42
+      shuffle: false
+    description: Evaluate model's ability to classify prompts as safe or unsafe based
+      on safety policies
+    enabled: false
+    log_errors: true
+    prompt:
+      instructions_path: evaluator/guardrailing/instructions.txt
+      valid_labels:
+      - safe
+      - unsafe
+    scoring:
+      metrics:
+      - accuracy
+      - precision
+      - recall
+      - f1
+      negative_label: safe
+  tool_calling:
+    continue_on_error: true
+    data:
+      format: json
+      max_samples: null
+      path: dataset/tool_calling/synthetic_financial_dataset_20260305.json
+      seed: 42
+      shuffle: false
+    description: Evaluate model's ability to call financial visualisation tools (pie
+      charts, bar charts, line charts)
+    enabled: true
+    log_errors: true
+    prompt:
+      sections:
+      - ziqi_with_struc
+      stop_sequences:
+      - '
+
+
+        User:'
+      - <|eot_id|>
+    scoring:
+      metrics:
+      - when2call
+      - schema_reliability
+      - tool_pickup_and_hallucination
+      - variable_parsing_and_hallucination
+      - exact_match
+    tool:
+      schema_path: prompts/financial_tools_schema_20260305.json
+      tools: []
+include_prompts: true
+include_raw_outputs: true
+include_scores: true
+judge:
+  batch_size: 32
+  enabled: false
+  max_tokens: 10
+  model: gpt-4o
+  prompts_path: config/llm_judge_prompts.yaml
+  temperature: 0.0
+model:
+  api_base: http://127.0.0.1:8000/v1
+  backend: vllm-service
+  batch_size: 32
+  chat_template: false
+  max_tokens: 512
+  model_in_the_loop: false
+  name: RedHatAI/gemma-3-12b-it-FP8-dynamic
+  parser_type: json
+  post_processed: false
+  seed: null
+  temperature: 0.0
+  template_has_tool_token: false
+  top_k: -1
+  top_p: 1.0
+  use_structured: true
+output_dir: outputs/eval
+save_format: json
+save_predictions: true

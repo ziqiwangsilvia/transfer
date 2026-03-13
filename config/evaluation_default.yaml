@@ -1,0 +1,156 @@
+---
+model:
+  name: "google/gemma-3-12b-it"
+  backend: "vllm-service"  # openai or vllm-service
+  api_base: "http://localhost:8000/v1"
+
+  # Whether the model's chat template has native tool-call roles.
+  chat_template: false
+  template_has_tool_token: false
+
+  post_processed: false   # True if already post-processed - running evaluator
+  # Parser used to interpret model outputs: "json" or "pythonic"
+  parser_type: "json"
+
+  # Generation parameters - used by both backends
+  temperature: 0.0
+  top_p: 1.0
+  top_k: -1
+  max_tokens: 512
+  seed: null
+
+  # Structured output support (mainly for guardrailing)
+  use_structured: true
+
+  # Model in the loop inference option (teacher forcing or model in the loop)
+  model_in_the_loop: false
+
+  # Batch processing
+  batch_size: 32  # Batch size for inference
+
+# BENCHMARKS CONFIGURATION
+benchmarks:
+  # TOOL CALLING
+  tool_calling:
+    enabled: true
+    description: >-
+      Evaluate model's ability to call financial visualisation tools
+      (pie charts, bar charts, line charts)
+
+    # Data Config
+    data:
+      path: "dataset/tool_calling/synthetic_financial_dataset_20260305.json"
+      format: "json"
+      max_samples: null
+      shuffle: false
+      seed: 42
+
+    # Tool Config
+    tool:
+      schema_path: "prompts/financial_tools_schema_20260305.json"
+      tools: []
+
+    # Prompt Config
+    prompt:
+      sections:
+        - ziqi_with_struc
+      stop_sequences:
+        - "\n\nUser:"
+        - "<|eot_id|>"
+
+    # Scoring Config
+    scoring:
+      metrics:
+        - "when2call"
+        - "schema_reliability"
+        - "tool_pickup_and_hallucination"
+        - "variable_parsing_and_hallucination"
+        - "exact_match"
+
+    # Runtime Settings
+    continue_on_error: true
+    log_errors: true
+
+  # GUARDRAILING
+  guardrailing:
+    enabled: false
+    description: >-
+      Evaluate model's ability to classify prompts as safe or unsafe
+      based on safety policies
+
+    # Data Config
+    data:
+      path: "dataset/guardrailing/guardrails_data.jsonl"
+      format: "jsonl"
+      field_prompt: "prompt"
+      field_label: "prompt_label"
+      field_violated_categories: "violated_categories"
+      max_samples: null
+      shuffle: false
+      seed: 42
+
+    # Prompt Config
+    prompt:
+      instructions_path: "evaluator/guardrailing/instructions.txt"
+      valid_labels:
+        - "safe"
+        - "unsafe"
+
+    # Scoring Config
+    scoring:
+      metrics:
+        - "accuracy"
+        - "precision"
+        - "recall"
+        - "f1"
+      negative_label: "safe"
+
+    # Runtime Settings
+    continue_on_error: true
+    log_errors: true
+
+  # CONVERSATIONAL CONTENT
+  conversational:
+    enabled: true
+    description: >-
+      Evaluate conversational content quality for NLP responses
+      using multiple metrics including LLM-as-judge
+
+    # Scoring configuration
+    scoring:
+      # Non-LLM metrics (always computed)
+      metrics:
+        - "rouge"
+        - "bert"
+        - "levenshtein"
+
+      # LLM-as-judge metrics (only if judge enabled)
+      llm_judge_metrics:
+        - "content_similarity"
+        - "context_accuracy"
+        - "content_politeness"
+        - "topic_accuracy"
+        - "content_helpfulness"
+
+# JUDGE MODEL CONFIGURATION (shared across benchmarks)
+judge:
+  # Set to false to disable all judge-based metrics
+  enabled: false
+
+  model: "gpt-4o"  # Only OpenAI API models
+
+  # Generation parameters
+  temperature: 0.0
+  max_tokens: 10  # Small for score/binary outputs
+  batch_size: 32
+
+  # Prompts configuration
+  prompts_path: "config/llm_judge_prompts.yaml"
+
+# OUTPUT CONFIG
+output_dir: "outputs/eval"
+save_predictions: true
+save_format: "json"
+include_prompts: true
+include_scores: true
+include_raw_outputs: true

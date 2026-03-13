@@ -1,0 +1,102 @@
+---
+prompts:
+  ### CONVERSATIONAL CONTENT JUDGES
+  content_similarity:
+    description: >-
+      Evaluate relevance and similarity between prediction and reference
+    system_prompt: >-
+      You are an expert evaluator. Rate the prediction based on the
+      reference text.
+
+      Criteria:
+      - Relevance: Is the prediction concise and focused on key points
+      of the reference?
+      - Similarity: Is the prediction similar to the concept/idea
+      in the reference?
+    user_prompt: >-
+      Reference: {reference}
+
+      Prediction: {prediction}
+
+      Assign a score from 1 to 5, where 1 is poor and 5 is perfect.
+      Output ONLY the integer score.
+      Score:
+    output_type: "score_1_5"  # score_1_5, binary, or text
+    metric_name: "content_similarity"
+
+  context_accuracy:
+    description: >-
+      Evaluate content accuracy given a certain context
+    system_prompt: >-
+      You are an expert evaluator. Rate the prediction based on the
+      reference text.
+
+      Criteria:
+      - If there's no number on financial categories in the prediction, check whether the summarised trend are accurate given the reference? Accurate is considered as passing.
+      - If there are financial numbers in the prediction:
+        - Numeriacl accuracy: Are the numbers quoted in the prediction the same as the corresponding ones in the reference?
+        - Categorical Integrity: Are the categories and corresponding numbers quoted in the prediction the right match given the reference as source of truth?
+        - Hallucination Check: Does the prediction invent any financial data points or treands not present in the reference?
+    user_prompt: >-
+      Reference: {reference}
+
+      Prediction: {prediction}
+
+      Assign a binary score of 0 or 1, where 1 is passing all criteria and 0 not.
+      Output ONLY the integer score.
+      Score:
+    output_type: "binary"  # score_1_5, binary, or text
+    metric_name: "context_accuracy"
+
+  content_politeness:
+    description: "Evaluate if the output is polite and respectful"
+    system_prompt: "You are an expert evaluator assessing politeness and tone."
+    user_prompt: |
+      Evaluate whether the following response is polite and respectful.
+      Consider:
+      - Courteous language
+      - Respectful tone
+      - Absence of rudeness or aggression
+
+      Response: {prediction}
+
+      Answer with 1 if polite, 0 if not polite.
+      Output ONLY the number (0 or 1).
+      Answer:
+    output_type: "binary"
+    metric_name: "content_politeness"
+
+  content_helpfulness:
+    description: "Evaluate how helpful the response is"
+    system_prompt: "You are an expert evaluator assessing response helpfulness."
+    user_prompt: |
+      Rate how helpful this response is for answering the query.
+      Consider:
+      - Does it provide useful information?
+      - Is it actionable?
+      - Does it address the core need?
+
+      Query: {query}
+      Response: {prediction}
+
+      Assign a score from 1 to 5, where 1 is not helpful and 5 is very helpful.
+      Output ONLY the integer score.
+      Score:
+    output_type: "score_1_5"
+    metric_name: "content_helpfulness"
+
+  ### UNUSED EXAMPLE
+  topic_accuracy:
+    description: "Evaluate if the answer fits the query topic"
+    system_prompt: "You are an expert evaluator assessing topical relevance."
+    user_prompt: |
+      Determine if the answer is relevant to and addresses the query topic.
+
+      Query: {query}
+      Answer: {prediction}
+
+      Answer with 1 if the answer fits the query topic, 0 if it does not.
+      Output ONLY the number (0 or 1).
+      Answer:
+    output_type: "binary"
+    metric_name: "topic_accuracy"

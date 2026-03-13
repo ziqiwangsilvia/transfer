@@ -1,0 +1,109 @@
+[
+    {
+        "name": "show_line_chart",
+        "description": "Display trends over time. Use metric 'balance' for account balance, 'net_cash_flow' for income vs spending, 'income' or 'spending' for individual trends",
+        "type": "object",
+        "properties": {
+            "metric": {
+                "description": "What data to show on the line chart.",
+                "enum": ["balance", "net_cash_flow", "income", "spending"],
+                "type": "string"
+            },
+            "time_range": {
+                "description": "The time period to display data for.",
+                "enum": ["this_month", "last_month", "last_30_days", "last_90_days", "this_year"],
+                "type": "string"
+            },
+            "title": {
+                "description": "Chart title that describes the visualization.",
+                "type": "string"
+            }
+        }
+    },
+    {
+        "name": "show_pie_chart",
+        "description": "Display spending or income breakdown by category. Set data_type to 'income' for income, 'spending' for expenses",
+        "type": "object",
+        "properties": {
+            "data_type": {
+                "type": "string",
+                "enum": ["spending", "income"],
+                "description": "Whether to show spending (expenses) or income"
+            },
+            "time_range": {
+                "type": "string",
+                "enum": ["this_month", "last_month", "last_30_days", "last_90_days", "this_year"],
+                "description": "The time period to analyze"
+            },
+            "group_by": {
+                "type": "string",
+                "enum": ["category", "payee"],
+                "description": "How to group the data in the pie chart"
+            },
+            "title": {
+                "type": "string",
+                "description": "Chart title describing the visualization"
+            },
+            "limit": {
+                "type": "integer",
+                "default": 10,
+                "description": "Max items to show. Remaining items grouped into 'Other'."
+            },
+            "filter_by": {
+                "description": "Filter type: 'category' to filter by categories, 'payee' to filter by payees.",
+                "enum": ["category", "payee"],
+                "type": "string"
+            },
+            "filter_values": {
+                "description": "List of category or payee names to include (based on filter_by).",
+                "type": "array",
+                "items": { "type": "string" }
+            }
+        }
+    },
+    {
+        "name": "show_stacked_bar_chart",
+        "description": "Display spending or income trends over time by category. Set data_type to 'income' for income, 'spending' for expenses",
+        "type": "object",
+        "properties": {
+            "data_type": {
+                "description": "Whether to show spending or income data.",
+                "enum": ["spending", "income"],
+                "type": "string"
+            },
+            "time_range": {
+                "description": "The time period to display.",
+                "enum": ["this_month", "last_month", "last_30_days", "last_90_days", "this_year"],
+                "type": "string"
+            },
+            "time_granularity": {
+                "description": "How to aggregate data: 'total' for summed, 'monthly' for month-by-month bars.",
+                "enum": ["total", "monthly"],
+                "type": "string"
+            },
+            "group_by": {
+                "description": "How to stack the bars.",
+                "enum": ["category", "payee"],
+                "type": "string"
+            },
+            "limit": {
+                "description": "Max items to show. Remaining items grouped into 'Other'.",
+                "type": "integer"
+            },
+            "filter_categories": {
+                "description": "List of category names to include (omit for all).",
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "filter_payees": {
+                "description": "List of payee names to include (omit for all).",
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "title": {
+                "description": "Chart title that describes the visualization.",
+                "type": "string"
+            }
+        }
+    }
+]
