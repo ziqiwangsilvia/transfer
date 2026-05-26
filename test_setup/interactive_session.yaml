@@ -1,0 +1,53 @@
+# interactive_session.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: wangzg-it
+spec:
+  serviceAccountName: hyperpod-node-iam
+  nodeSelector:
+      session: interactive
+  containers:
+  - name: hf-training
+    image: 763104351884.dkr.ecr.eu-west-2.amazonaws.com/pytorch-training:2.8.0-gpu-py312-cu129-ubuntu22.04-ec2
+    command: ["sleep", "infinity"]
+    resources:
+      requests:
+        cpu: "8"
+        memory: "64Gi"
+        nvidia.com/gpu: "2"
+      limits:
+        cpu: "8"
+        memory: "64Gi"
+        nvidia.com/gpu: "2"    
+    volumeMounts:
+    - name: node-nvme
+      mountPath: /node-nvme
+    - name: user-ebs
+      mountPath: /user-ebs
+    - name: user-ebs
+      mountPath: /root
+      subPath: root
+    - name: fsx-volume
+      mountPath: /fsx/shared
+    - name: fsx-volume
+      mountPath: /fsx/users/wangzg
+      subPath: users/wangzg
+    - name: dshm
+      mountPath: /dev/shm
+  volumes:
+  - name: node-nvme
+    hostPath:
+      path: /opt/dlami/nvme
+      type: DirectoryOrCreate
+  - name: user-ebs
+    persistentVolumeClaim:
+      claimName: wangzg-ebs
+  - name: fsx-volume
+    persistentVolumeClaim:
+      claimName: cairo-fsx-lustre-claim
+  - name: dshm
+    emptyDir:
+      medium: Memory
+  restartPolicy: Never

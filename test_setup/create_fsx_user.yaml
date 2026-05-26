@@ -1,0 +1,30 @@
+# create_fsx_user.yaml
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fsx-setup-wangzg
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      containers:
+      - name: setup-fsx-dirs
+        image: public.ecr.aws/docker/library/busybox
+        command: 
+        - sh
+        - -c
+        - |
+          echo "Creating FSx directory structure for user"
+          mkdir -p /fsx/users/wangzg
+          echo "Directory structure created:"
+          ls -la /fsx/users/
+          echo "Setup complete. Pod will exit."
+        volumeMounts:
+        - name: fsx-volume
+          mountPath: /fsx
+      volumes:
+      - name: fsx-volume
+        persistentVolumeClaim:
+          claimName: cairo-fsx-lustre-claim
+      restartPolicy: Never
