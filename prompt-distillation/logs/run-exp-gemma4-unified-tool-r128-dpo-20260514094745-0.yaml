@@ -1,0 +1,84 @@
+
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: wangzg-llm-run-exp-gemma4-unified-too-20260514094745-0
+spec:
+  pytorchReplicaSpecs:
+    Worker:
+      replicas: 1
+      restartPolicy: Never
+      template:
+        metadata:
+          labels:
+            app: run-exp-gemma4-unified-tool-r128-dpo
+        spec:
+          serviceAccountName: hyperpod-node-iam
+          nodeSelector:
+            session: training
+          terminationGracePeriodSeconds: 0
+          containers:
+          - name: pytorch
+            image: 763104351884.dkr.ecr.eu-west-2.amazonaws.com/pytorch-training:2.8.0-gpu-py312-cu129-ubuntu22.04-ec2
+            env:
+              - name: NNODES
+                value: "1"
+              - name: NGPUS
+                value: "8"
+              - name: RANK
+                value: "0"
+              - name: MASTER_ADDR
+                value: "localhost"
+              - name: MASTER_PORT
+                value: "29500"
+              - name: NCCL_DEBUG
+                value: "INFO"
+              - name: NCCL_SOCKET_IFNAME
+                value: "eth0"
+              - name: NCCL_IB_DISABLE
+                value: "1"
+              - name: UV_NO_CACHE
+                value: "true"
+            command: ["/bin/bash", "-c"]
+            args:
+              - |
+                set -e
+                echo "Hostname: $HOSTNAME"
+
+                cd /fsx/users/wangzg
+
+                if [ ! -f "$HOME/.local/bin/uv" ]; then
+                    echo "Installing uv..."
+                    curl -LsSf https://astral.sh/uv/install.sh | sh
+                fi
+                export PATH="$HOME/.local/bin:$PATH"
+
+                echo "Starting job script..."
+                bash /fsx/users/wangzg/jobs/run-exp-gemma4-unified-tool-r128-dpo-20260514094745-0.sh
+
+            resources:
+              limits:
+                nvidia.com/gpu: 8
+                # cpu: 182
+                memory: 1871Gi
+              requests:
+                nvidia.com/gpu: 8
+                cpu: 182
+                memory: 1871Gi
+
+            volumeMounts:
+              - name: fsx-volume
+                mountPath: /fsx/shared
+              - name: fsx-volume
+                mountPath: /fsx/users/wangzg
+                subPath: users/wangzg
+              - name: shmem
+                mountPath: /dev/shm
+
+          volumes:
+            - name: fsx-volume
+              persistentVolumeClaim:
+                claimName: cairo-fsx-lustre-claim
+            - name: shmem
+              emptyDir:
+                medium: Memory
