@@ -18,7 +18,7 @@ Primary cost drivers (to be sized against target volume):
 | Teacher inference | Data generation + scoring signal (largest variable cost; external API teachers add per-token cost) |
 | Training + rollout compute | SFT, offline KD, and on-policy/rollout loops (rollouts are the most compute-heavy) |
 | Serving | The cost we are reducing; distilled models cut it structurally |
-| Headcount | 4 (lead + 3), see Assignment |
+| Headcount | 4 (Lead + 3), see Assignment |
 | Tooling | Experiment tracking, data store, eval harness, sandbox for tool-use training |
 
 Note: training compute is a one-time cost per model; serving savings recur. The budget trade is "spend training compute once to lower serving cost permanently."
@@ -30,7 +30,7 @@ Note: training compute is a one-time cost per model; serving savings recur. The 
 | Data & curation | Data generation + metrics-based filtering |
 | Distillation researcher | Offline + on-policy distillation; scoring-signal design (verifiers/judges are a real sub-problem, not a drop-in) |
 | Training & inference optimization | Efficient training (QAT, mixed precision, distillation training loop), inference optimization (quantization, pruning, latency/throughput tuning), and serving-cost reduction |
-| Lead (you) | Job-spec schema, governance rules, cross-modality strategy, hands-on where the bottleneck is |
+| Lead | Job-spec schema, governance rules, cross-modality strategy, hands-on where the bottleneck is |
 
 Audio is a phased expansion, not a separate headcount — ideally one hire has speech background.
 
